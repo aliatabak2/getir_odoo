@@ -1,0 +1,55 @@
+<odoo>
+    <!-- FORM VIEW -->
+    <record id="view_getir_api_form" model="ir.ui.view">
+        <field name="name">getir.api.form</field>
+        <field name="model">getir.api</field>
+        <field name="arch" type="xml">
+            <form string="Getir API Ayarları">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="api_url"/>
+                        <field name="app_secret_key"/>
+                        <field name="restaurant_secret_key"/>
+                        <field name="token" readonly="1"/>
+                    </group>
+                    <footer>
+                        <button name="action_login" type="object"
+                                string="Login (Token Al)"
+                                class="btn-primary"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- list VIEW -->
+    <record id="view_getir_api_list" model="ir.ui.view">
+        <field name="name">getir.api.list</field>
+        <field name="model">getir.api</field>
+        <field name="arch" type="xml">
+            <list string="Getir API Listesi">
+                <field name="name"/>
+                <field name="api_url"/>
+                <field name="token"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ACTION (önce tanımlanmalı) -->
+    <record id="action_getir_api_list" model="ir.actions.act_window">
+        <field name="name">Getir API</field>
+        <field name="res_model">getir.api</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p>Buradan Getir API bağlantı bilgilerinizi girip test edebilirsiniz.</p>
+        </field>
+    </record>
+
+    <!-- MENÜ -->
+    <menuitem id="menu_getir_root" name="Getir Connector" sequence="10"/>
+    <menuitem id="menu_getir_api"
+              name="API Ayarları"
+              parent="menu_getir_root"
+              action="action_getir_api_list"/>
+</odoo>

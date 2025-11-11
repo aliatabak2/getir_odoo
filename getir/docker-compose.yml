@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:15
+    container_name: getir-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+      - ./extra-addons:/mnt/extra-addons
+      - ./fonts:/usr/share/fonts/truetype/custom
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  odoo:
+    image: odoo:18.0
+    container_name: getir-odoo
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "8090:8069"
+    environment:
+      TZ: Europe/Istanbul
+    volumes:
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+      - ./extra-addons:/mnt/extra-addons
+      - odoo-data:/var/lib/odoo
+
+volumes:
+  odoo-data:
