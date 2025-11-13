@@ -1,0 +1,10 @@
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.OrderList" t-inherit-mode="primary" owl="1">
+        <xpath expr="//div[contains(@class,'order-line')]" position="inside">
+            <!-- Use indexOf for broader compatibility instead of startsWith -->
+            <t t-if="order.ref and order.ref.indexOf('Getir-') === 0">
+                <span class="badge bg-warning" title="Getir order" style="margin-left: 5px;">Getir</span>
+            </t>
+        </xpath>
+    </t>
+</templates>

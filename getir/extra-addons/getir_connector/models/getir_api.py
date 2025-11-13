@@ -80,6 +80,7 @@ class GetirAPI(models.Model):
         products = payload.get("products", [])
         order_id = payload.get("id")
 
+        # Müşteri
         partner = self.env["res.partner"].sudo().search(
             [("phone", "=", client.get("contactPhoneNumber"))], limit=1
         )
@@ -91,10 +92,12 @@ class GetirAPI(models.Model):
                 "city": client.get("deliveryAddress", {}).get("city"),
             })
 
+        # Getir POS config bul
         pos_config = self.env["pos.config"].sudo().search([("name", "ilike", "getir")], limit=1)
         if not pos_config:
             raise UserError("Getir POS bulunamadı. Lütfen 'Getir Restoranı' adlı bir POS oluşturun.")
 
+        # Açık session
         pos_session = self.env["pos.session"].sudo().search([
             ("config_id", "=", pos_config.id),
             ("state", "=", "opened")
@@ -102,29 +105,40 @@ class GetirAPI(models.Model):
         if not pos_session:
             raise UserError("Getir POS oturumu açık değil.")
 
+        # Satırları hazırla
         lines = []
         for p in products:
-            name = p.get("product") or p.get("name", {}).get("tr")
+            name = p.get("product") or (p.get("name") or {}).get("tr")
             qty = p.get("count", 1)
             price = p.get("priceWithOption") or p.get("price") or 0.0
 
-            product = self.env["product.product"].sudo().search([("name", "ilike", name)], limit=1)
+            product = self.env["product.product"].sudo().search(
+                [("name", "ilike", name)], limit=1
+            )
             if not product:
                 product = self.env["product.product"].sudo().create({
                     "name": name,
                     "list_price": price,
                 })
+
             lines.append((0, 0, {
                 "product_id": product.id,
                 "qty": qty,
                 "price_unit": price,
             }))
 
+        # Getir floor/table
+        getir_table = self.env["pos.order"].sudo().create_getir_floor_and_table()
+
+        # POS order oluştur
         pos_order = self.env["pos.order"].sudo().create({
             "session_id": pos_session.id,
             "partner_id": partner.id,
-            "ref": f"Getir-{order_id}",
+            "pos_reference": f"Getir-{order_id}",
             "lines": lines,
+            "is_getir_order": True,
+            "table_id": getir_table.id,
         })
+
         _logger.info("Yeni Getir siparişi oluşturuldu: %s", order_id)
         return pos_order
