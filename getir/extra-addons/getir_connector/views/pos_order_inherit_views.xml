@@ -1,31 +1,24 @@
 <odoo>
-    <!-- POS Order list görünümünü genişletiyoruz -->
     <record id="view_pos_order_getir_inherit_form" model="ir.ui.view">
         <field name="name">pos.order.getir.form.inherit</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
         <field name="arch" type="xml">
 
+            <!-- 1) İlk eklemek istediğin boş grup -->
             <xpath expr="//sheet/group" position="inside">
                 <group string="Getir">
-                    
+                    <!-- istersen buraya özel alanlar ekleyebilirsin -->
                 </group>
             </xpath>
 
-        </field>
-    </record>
-    <!-- form görünümü için -->
-    <record id="view_pos_order_getir_inherit_form2" model="ir.ui.view">
-        <field name="name">pos.order.getir.form.inherit</field>
-        <field name="model">pos.order</field>
-        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
-        <field name="arch" type="xml">
+            <!-- 2) İkinci görünümde eklemek istediğin grup -->
             <xpath expr="//sheet" position="inside">
                 <group string="Getir Entegrasyonu">
-                  
                     <field name="pos_reference"/>
                 </group>
             </xpath>
+
         </field>
     </record>
 </odoo>

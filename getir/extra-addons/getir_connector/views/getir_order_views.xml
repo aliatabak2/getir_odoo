@@ -61,10 +61,7 @@
         </field>
     </record>
 
-    <act_window id="action_getir_order_list"
-                name="Getir Orders"
-                res_model="getir.order"
-                view_mode="list,form"/>
+   
 
  
 </odoo>

@@ -1,107 +1,13 @@
 <odoo>
-    <menuitem id="menu_getir_root"
-              name="Getir Connector"
-              parent="point_of_sale.menu_point_root"
-              sequence="99"/>
 
-    <!-- SUBMENU : Orders -->
-    <menuitem id="menu_getir_orders"
-              name="Siparişler"
-              parent="menu_getir_root"
-              action="action_getir_orders"
-              sequence="1"/>
 
-    <!-- SUBMENU : Product Mapping -->
-    <menuitem id="menu_getir_product_map"
-              name="Product Mapping"
-              parent="menu_getir_root"
-              action="action_getir_product_map"
-              sequence="2"/>
 
-    <!-- SUBMENU : Logs -->
-    <menuitem id="menu_getir_logs"
-              name="Loglar"
-              parent="menu_getir_root"
-              action="action_getir_log_list"
-              sequence="3"/>
-
-    <!-- GETIR ORDER LIST VIEW -->
-    <record id="view_getir_order_list_menu" model="ir.ui.view">
-        <field name="name">getir.order.list.menu</field>
-        <field name="model">getir.order</field>
-        <field name="arch" type="xml">
-            <list string="Getir Orders">
-                <field name="name"/>
-                <field name="getir_id"/>
-                <field name="status"/>
-                <field name="customer_name"/>
-                <field name="total_price"/>
-                <field name="total_discounted_price"/>
-                <field name="payment_method_text"/>
-                <field name="pos_order_id"/>
-                <field name="create_date"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- GETIR ORDER FORM VIEW -->
-    <record id="view_getir_order_form_menu" model="ir.ui.view">
-        <field name="name">getir.order.form.menu</field>
-        <field name="model">getir.order</field>
-        <field name="arch" type="xml">
-            <form string="Getir Order">
-                <sheet>
-
-                    <group string="Genel">
-                        <field name="name"/>
-                        <field name="getir_id"/>
-                        <field name="status"/>
-                        <field name="delivery_type"/>
-                        <field name="is_scheduled"/>
-                        <field name="scheduled_date"/>
-                    </group>
-
-                    <group string="Müşteri">
-                        <field name="customer_name"/>
-                        <field name="customer_phone"/>
-                        <field name="customer_note"/>
-                        <field name="address_text"/>
-                        <field name="address_city"/>
-                        <field name="address_lat"/>
-                        <field name="address_lng"/>
-                    </group>
-
-                    <group string="Fiyatlar">
-                        <field name="total_price"/>
-                        <field name="total_discounted_price"/>
-                        <field name="total_discount_amount"/>
-                        <field name="supplier_support_rate"/>
-                    </group>
-
-                    <group string="Ödeme">
-                        <field name="payment_method"/>
-                        <field name="payment_method_text"/>
-                    </group>
-
-                    <group string="POS">
-                        <field name="pos_order_id"/>
-                    </group>
-
-                    <group string="Raw JSON">
-                        <field name="raw_payload" widget="text"/>
-                    </group>
-
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- ACTION: getir.order -->
+  <!-- ACTION: getir.order -->
     <record id="action_getir_orders" model="ir.actions.act_window">
         <field name="name">Siparişler</field>
         <field name="res_model">getir.order</field>
         <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_getir_order_list_menu"/>
+     
     </record>
 
     <!-- PRODUCT MAP LIST -->
@@ -142,5 +48,104 @@
         <field name="res_model">getir.product.map</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <menuitem id="menu_getir_root"
+              name="Getir Connector"
+              parent="point_of_sale.menu_point_root"
+              sequence="99"/>
+
+    <!-- SUBMENU : Orders -->
+    <menuitem id="menu_getir_orders"
+              name="Siparişler"
+              parent="menu_getir_root"
+              action="action_getir_orders"
+              sequence="1"/>
+
+    <!-- SUBMENU : Product Mapping -->
+    <menuitem id="menu_getir_product_map"
+              name="Product Mapping"
+              parent="menu_getir_root"
+              action="action_getir_product_map"
+              sequence="2"/>
+
+    <!-- SUBMENU : Logs -->
+    <menuitem id="menu_getir_logs"
+              name="Loglar"
+              parent="menu_getir_root"
+              action="action_getir_log_list"
+              sequence="3"/>
+
+
+
+    <!-- GETIR ORDER LIST VIEW -->
+    <record id="view_getir_order_list_menu" model="ir.ui.view">
+        <field name="name">getir.order.list.menu</field>
+        <field name="model">getir.order</field>
+        <field name="arch" type="xml">
+            <list string="Getir Orders">
+                <field name="name"/>
+                <field name="getir_id"/>
+                <field name="status"/>
+                <field name="customer_name"/>
+                <field name="total_price"/>
+                <field name="total_discounted_price"/>
+                <field name="payment_method_text"/>
+                <field name="pos_order_id"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- GETIR ORDER FORM VIEW -->
+    <record id="view_getir_order_form_menu" model="ir.ui.view">
+        <field name="name">getir.order.form.menu</field>
+        <field name="model">getir.order</field>
+        <field name="arch" type="xml">
+            <form string="Getir Order">
+                <sheet>
+                    <group string="Genel">
+                        <field name="name"/>
+                        <field name="getir_id"/>
+                        <field name="status"/>
+                        <field name="delivery_type"/>
+                        <field name="is_scheduled"/>
+                        <field name="scheduled_date"/>
+                    </group>
+
+                    <group string="Müşteri">
+                        <field name="customer_name"/>
+                        <field name="customer_phone"/>
+                        <field name="customer_note"/>
+                        <field name="address_text"/>
+                        <field name="address_city"/>
+                        <field name="address_lat"/>
+                        <field name="address_lng"/>
+                    </group>
+
+                    <group string="Fiyatlar">
+                        <field name="total_price"/>
+                        <field name="total_discounted_price"/>
+                        <field name="total_discount_amount"/>
+                        <field name="supplier_support_rate"/>
+                    </group>
+
+                    <group string="Ödeme">
+                        <field name="payment_method"/>
+                        <field name="payment_method_text"/>
+                    </group>
+
+                    <group string="POS">
+                        <field name="pos_order_id"/>
+                    </group>
+
+                    <group string="Raw JSON">
+                        <field name="raw_payload" widget="text"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+  
 
 </odoo>
