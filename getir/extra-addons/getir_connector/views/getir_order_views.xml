@@ -1,0 +1,70 @@
+<odoo>
+
+    <record id="view_getir_order_list" model="ir.ui.view">
+        <field name="name">getir.order.list</field>
+        <field name="model">getir.order</field>
+        <field name="arch" type="xml">
+            <list string="Getir Orders">
+                <field name="name"/>
+                <field name="getir_id"/>
+                <field name="status"/>
+                <field name="customer_name"/>
+                <field name="total_price"/>
+                <field name="total_discounted_price"/>
+                <field name="payment_method_text"/>
+                <field name="pos_order_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_getir_order_form" model="ir.ui.view">
+        <field name="name">getir.order.form</field>
+        <field name="model">getir.order</field>
+        <field name="arch" type="xml">
+            <form string="Getir Order">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="getir_id"/>
+                        <field name="status"/>
+                        <field name="delivery_type"/>
+                        <field name="is_scheduled"/>
+                        <field name="scheduled_date"/>
+                    </group>
+                    <group string="Customer">
+                        <field name="customer_name"/>
+                        <field name="customer_phone"/>
+                        <field name="customer_note"/>
+                        <field name="address_text"/>
+                        <field name="address_city"/>
+                        <field name="address_lat"/>
+                        <field name="address_lng"/>
+                    </group>
+                    <group string="Prices">
+                        <field name="total_price"/>
+                        <field name="total_discounted_price"/>
+                        <field name="total_discount_amount"/>
+                        <field name="supplier_support_rate"/>
+                    </group>
+                    <group string="Payment">
+                        <field name="payment_method"/>
+                        <field name="payment_method_text"/>
+                    </group>
+                    <group string="Raw">
+                        <field name="raw_payload" widget="text"/>
+                    </group>
+                    <group>
+                        <field name="pos_order_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <act_window id="action_getir_order_list"
+                name="Getir Orders"
+                res_model="getir.order"
+                view_mode="list,form"/>
+
+ 
+</odoo>

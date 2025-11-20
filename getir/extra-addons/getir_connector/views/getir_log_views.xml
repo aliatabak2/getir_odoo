@@ -1,0 +1,51 @@
+<odoo>
+
+    <record id="view_getir_log_list" model="ir.ui.view">
+        <field name="name">getir.log.list</field>
+        <field name="model">getir.log</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="endpoint"/>
+                <field name="method"/>
+                <field name="http_status"/>
+                <field name="success"/>
+                <field name="order_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_getir_log_form" model="ir.ui.view">
+        <field name="name">getir.log.form</field>
+        <field name="model">getir.log</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="endpoint"/>
+                        <field name="method"/>
+                        <field name="http_status"/>
+                        <field name="success"/>
+                        <field name="error_message"/>
+                        <field name="order_id"/>
+                    </group>
+                    <notebook>
+                        <page string="Request">
+                            <field name="request_payload" widget="text"/>
+                        </page>
+                        <page string="Response">
+                            <field name="response_payload" widget="text"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_getir_log_list" model="ir.actions.act_window">
+        <field name="name">Loglar</field>
+        <field name="res_model">getir.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

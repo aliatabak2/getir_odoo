@@ -1,85 +1,104 @@
 from odoo import http
 from odoo.http import request
 import logging
+import json
 
 _logger = logging.getLogger(__name__)
 
 
 class GetirWebhook(http.Controller):
 
-    # YENİ SİPARİŞ
-    @http.route(['/newOrder', '/getir/newOrder'], type='http', auth='public', methods=['POST'], csrf=False)
-    def new_order(self, **kwargs):
+    # ----------------------------------------------------------------------
+    # 🟣 YENİ SİPARİŞ (FULL FORMAT)
+    # ----------------------------------------------------------------------
+    @http.route(['/getir/newOrder', '/newOrder'], type='json', auth='public', csrf=False, methods=['POST'])
+    def new_order(self):
         """
-        Getir'den gelen yeni sipariş webhook'u.
-        Postman / Getir -> JSON body -> Odoo
+        Getir → Odoo : newOrder webhook
+        type='json' olduğu için request.jsonrequest ile body direkt alınır.
         """
-        # Body'deki JSON'u oku
-        data = request.get_json_data() or {}
-        _logger.info("GETIR NEW ORDER: %s", data)
+        payload = request.jsonrequest
+        if not payload:
+            return {"success": False, "error": "Payload not found"}
 
-        api = request.env["getir.api"].sudo().search([], limit=1)
-        if not api:
-            _logger.error("Getir API yapılandırması bulunamadı.")
-            return request.make_json_response({
-                "success": False,
-                "error": "Getir API yapılandırması bulunamadı."
-            }, status=500)
+        _logger.info("GETIR NEW ORDER PAYLOAD: %s", json.dumps(payload, ensure_ascii=False))
 
         try:
-            pos_order = api._create_pos_order_from_getir(data)
+            getir_order = request.env["getir.order"].sudo().create_from_payload(payload)
         except Exception as e:
             _logger.exception("Getir newOrder işleminde hata: %s", e)
-            return request.make_json_response({
-                "success": False,
-                "error": str(e),
-            }, status=500)
+            return {"success": False, "error": str(e)}
 
-        return request.make_json_response({
+        return {
             "success": True,
-            "order_id": pos_order.id,
-        })
+            "getir_order": getir_order.name,
+            "pos_order_id": getir_order.pos_order_id.id,
+        }
 
-    # SİPARİŞ İPTAL
-    @http.route(['/cancelOrder', '/getir/cancelOrder'], type='http', auth='public', methods=['POST'], csrf=False)
-    def cancel_order(self, **kwargs):
-        """
-        Getir sipariş iptali webhook'u.
-        """
-        data = request.get_json_data() or {}
-        _logger.info("GETIR CANCEL ORDER: %s", data)
+    # ----------------------------------------------------------------------
+    # 🟣 SİPARİŞ İPTAL / CANCEL
+    # ----------------------------------------------------------------------
+    @http.route(['/getir/cancelOrder', '/cancelOrder'], type='json', auth='public', csrf=False, methods=['POST'])
+    def cancel_order(self):
+        payload = request.jsonrequest or {}
+        _logger.info("GETIR CANCEL ORDER PAYLOAD: %s", payload)
 
-        order_ref = f"Getir-{data.get('id')}"
-        pos_order = request.env["pos.order"].sudo().search(
-            [("pos_reference", "=", order_ref)],
-            limit=1,
-        )
-        if pos_order:
-            pos_order.sudo().write({"state": "cancel"})
-            _logger.info("Getir siparişi iptal edildi: %s", order_ref)
-        else:
-            _logger.warning("İptal edilecek POS siparişi bulunamadı: %s", order_ref)
+        order_id = str(payload.get("id") or payload.get("orderId"))
+        if not order_id:
+            return {"success": False, "error": "orderId bulunamadı."}
 
-        return request.make_json_response({"success": True})
+        getir_ref = f"Getir-{order_id}"
 
-    # KURYE DURUMU
-    @http.route(['/courier', '/getir/courier'], type='http', auth='public', methods=['POST'], csrf=False)
-    def courier_notification(self, **kwargs):
-        """
-        Kurye durumu bildirimi (Getir -> Odoo).
-        """
-        data = request.get_json_data() or {}
-        _logger.info("GETIR COURIER NOTIFICATION: %s", data)
-        # TODO: İleride pos.order içine kurye statüsü yazmak istersen burada işlersin
-        return request.make_json_response({"success": True})
+        getir_order = request.env["getir.order"].sudo().search([
+            ("name", "=", getir_ref)
+        ], limit=1)
 
-    # RESTORAN DURUMU
-    @http.route(['/restaurant', '/getir/restaurant'], type='http', auth='public', methods=['POST'], csrf=False)
-    def restaurant_status(self, **kwargs):
-        """
-        Restoran durumu bildirimi (Getir -> Odoo).
-        """
-        data = request.get_json_data() or {}
-        _logger.info("GETIR RESTAURANT STATUS: %s", data)
-        # TODO: Odoo tarafında restoranın online/offline statüsünü tutmak istersen
-        return request.make_json_response({"success": True})
+        if not getir_order:
+            return {"success": False, "error": "Sipariş bulunamadı"}
+
+        # POS siparişi iptal et
+        if getir_order.pos_order_id:
+            getir_order.pos_order_id.sudo().write({"state": "cancel"})
+
+        # Getir tarafına iptal sebebi iletilecek endpoint: /food-orders/{id}/cancel
+        # Biz burada sadece kaydediyoruz
+        getir_order.status = "cancelled"
+
+        return {"success": True, "message": "İptal işlendi."}
+
+    # ----------------------------------------------------------------------
+    # 🟣 KURYE DURUMU
+    # ----------------------------------------------------------------------
+    @http.route(['/getir/courier', '/courier'], type='json', auth='public', csrf=False, methods=['POST'])
+    def courier(self):
+        payload = request.jsonrequest or {}
+        _logger.info("GETIR COURIER STATUS: %s", payload)
+
+        # Beklenen format:
+        # {
+        #   "orderId": "",
+        #   "courierStatus": 450
+        # }
+
+        order_id = str(payload.get("orderId"))
+        courier_status = payload.get("courierStatus")
+
+        getir_order = request.env["getir.order"].sudo().search([
+            ("getir_id", "=", order_id)
+        ], limit=1)
+
+        if getir_order:
+            getir_order.status = f"courier:{courier_status}"
+
+        return {"success": True}
+
+    # ----------------------------------------------------------------------
+    # 🟣 RESTORAN DURUMU (open/close)
+    # ----------------------------------------------------------------------
+    @http.route(['/getir/restaurant', '/restaurant'], type='json', auth='public', csrf=False, methods=['POST'])
+    def restaurant(self):
+        payload = request.jsonrequest or {}
+        _logger.info("GETIR RESTAURANT STATUS PAYLOAD: %s", payload)
+
+        # Örn: {"status": 100} = açık, 200 = kapalı
+        return {"success": True}

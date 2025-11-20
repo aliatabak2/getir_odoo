@@ -1,45 +1,66 @@
 from odoo import models, api
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class GetirRestaurantSetup(models.Model):
     _inherit = "pos.order"
 
     @api.model
     def create_getir_floor_and_table(self):
-        """Getir Floor ve Masa otomatik oluşturur (tek seferlik)"""
+        """
+        Odoo 18 için floor/table oluşturma.
+        Masa numarası (table_number) zorunlu olduğu için 999 kullanıyoruz.
+        """
         env = self.env
 
-        # GETIR FLOOR
-        getir_floor = env["restaurant.floor"].search([("name", "=", "Getir")], limit=1)
-        if not getir_floor:
-            getir_floor = env["restaurant.floor"].create({
-                "name": "Getir",
-                "sequence": 50,
-                "active": True,
-            })
+        Floor = env['restaurant.floor']
+        Table = env['restaurant.table']
 
-        # GETIR TABLE
-        getir_table = env["restaurant.table"].search([("name", "=", "Getir Online")], limit=1)
-        if not getir_table:
-            getir_table = env["restaurant.table"].create({
-                "name": "Getir Online",
-                "floor_id": getir_floor.id,
-                "shape": "square",
-                "width": 100,
-                "height": 100,
-                "position_h": 200,
-                "position_v": 200,
-                "seats": 0,
-                "active": True,
-                "color": "#8e44ad"
-            })
+        # değişken HER KOŞULDA tanımlı olsun
+        getir_floor = None
+        getir_table = None
+
+        # 1) GETIR floor
+        try:
+            getir_floor = Floor.search([("name", "=", "Getir")], limit=1)
+            if not getir_floor:
+                getir_floor = Floor.create({
+                    "name": "Getir",
+                    "sequence": 50,
+                    "active": True,
+                })
+                _logger.info("Getir floor oluşturuldu. ID = %s", getir_floor.id)
+            else:
+                _logger.info("Getir floor bulundu. ID = %s", getir_floor.id)
+        except Exception as e:
+            _logger.error("Floor oluşturulurken hata: %s", e)
+
+        # 2) GETIR TABLE
+        try:
+            getir_table = Table.search([('table_number', '=', 999)], limit=1)
+            if not getir_table:
+                create_vals = {
+                    "table_number": 999,   # ← burası düzeltilmeli
+                    "seats": 0,
+                    "active": True,
+                    "shape": "square",
+                    "width": 120,
+                    "height": 120,
+                    "position_h": 200,
+                    "position_v": 200,
+                    "color": "#8e44ad",
+                }
+
+
+                if getir_floor:
+                    create_vals["floor_id"] = getir_floor.id
+
+                getir_table = Table.create(create_vals)
+                _logger.info("Getir table oluşturuldu. ID = %s", getir_table.id)
+            else:
+                _logger.info("Getir table bulundu. ID = %s", getir_table.id)
+        except Exception as e:
+            _logger.error("Table oluşturulurken hata: %s", e)
 
         return getir_table
-class PosSession(models.Model):
-    _inherit = "pos.session"
-
-    @api.model
-    def _load_orders(self):
-        orders = super()._load_orders()
-        if self.env.context.get("is_getir"):
-            orders = [o for o in orders if o.get("is_getir_order")]
-        return orders

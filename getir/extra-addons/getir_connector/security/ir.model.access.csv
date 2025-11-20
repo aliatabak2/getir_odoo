@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_getir_api_admin,access_getir_api_admin,model_getir_api,base.group_system,1,1,1,1
-
+access_getir_log_admin,access_getir_log_admin,model_getir_log,base.group_system,1,1,1,0
+access_getir_order_admin,access_getir_order_admin,model_getir_order,base.group_system,1,1,1,0
+access_getir_product_map_admin,access_getir_product_map_admin,model_getir_product_map,base.group_system,1,1,1,1

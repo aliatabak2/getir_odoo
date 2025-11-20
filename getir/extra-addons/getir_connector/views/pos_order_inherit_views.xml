@@ -1,26 +1,28 @@
 <odoo>
     <!-- POS Order list görünümünü genişletiyoruz -->
-    <record id="view_pos_order_getir_inherit_list" model="ir.ui.view">
-        <field name="name">pos.order.getir.list.inherit</field>
+    <record id="view_pos_order_getir_inherit_form" model="ir.ui.view">
+        <field name="name">pos.order.getir.form.inherit</field>
         <field name="model">pos.order</field>
-        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//list" position="inside">
-                <field name="pos_reference"/>
-                <field name="is_getir_order"/>
+
+            <xpath expr="//sheet/group" position="inside">
+                <group string="Getir">
+                    
+                </group>
             </xpath>
+
         </field>
     </record>
-
     <!-- form görünümü için -->
-    <record id="view_pos_order_getir_inherit_form" model="ir.ui.view">
+    <record id="view_pos_order_getir_inherit_form2" model="ir.ui.view">
         <field name="name">pos.order.getir.form.inherit</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="inside">
                 <group string="Getir Entegrasyonu">
-                    <field name="is_getir_order"/>
+                  
                     <field name="pos_reference"/>
                 </group>
             </xpath>

@@ -5,17 +5,32 @@ import { patch } from "@web/core/utils/patch";
 
 patch(PosStore.prototype, {
     async _loadInitialOrders() {
+        // Önce orijinal sipariş yükleme mantığını çalıştır
         await this._super(...arguments);
-        // Getir siparişleriyle ilgili log
-        console.log("Getir siparişleri yükleniyor...");
 
-        // Filtre: 'Getir-' ref içeren siparişleri al
-        const getirOrders = this.models['pos.order'].records.filter(order => order.ref && order.ref.startsWith("Getir-"));
-        console.log("Getir siparişleri bulundu:", getirOrders.length);
-        // POS Store’a ekle (görünür hale getirmek için)
-        for (const o of getirOrders) {
-            if (!this.db.get_order(o.id)) {
-                this.db.add_order(o.id, o);
+        console.log("[GETIR] POS initial orders yüklendi, Getir siparişleri filtreleniyor...");
+
+        // backend’den gelen pos.order kayıtları
+        const posOrdersModel = this.models.find(m => m.model === "pos.order");
+
+        if (!posOrdersModel) {
+            console.warn("[GETIR] this.models['pos.order'] bulunamadı.");
+            return;
+        }
+
+        const allOrders = posOrdersModel.records || [];
+
+        // Getir referanslı siparişler: ref veya pos_reference 'Getir-' ile başlıyorsa
+        const getirOrders = allOrders.filter((order) => {
+            const ref = order.ref || order.pos_reference || "";
+            return typeof ref === "string" && ref.indexOf("Getir-") === 0;
+        });
+
+        console.log(`[GETIR] POS Store içinde bulunan Getir siparişi sayısı: ${getirOrders.length}`);
+
+        for (const order of getirOrders) {
+            if (!this.db.get_order(order.id)) {
+                this.db.add_order(order.id, order);
             }
         }
     },
