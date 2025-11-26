@@ -51,7 +51,7 @@
 
     <menuitem id="menu_getir_root"
               name="Getir Connector"
-              parent="point_of_sale.menu_point_root"
+               parent="point_of_sale.menu_point_root"
               sequence="99"/>
 
     <!-- SUBMENU : Orders -->
@@ -71,7 +71,7 @@
     <!-- SUBMENU : Logs -->
     <menuitem id="menu_getir_logs"
               name="Loglar"
-              parent="menu_getir_root"
+              parent="menu_getir_root" 
               action="action_getir_log_list"
               sequence="3"/>
 

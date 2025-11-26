@@ -1,5 +1,5 @@
 {
-    "name": "Getir Yemek Full Connector",
+    "name": "getir_connector",
     "version": "18.0.1.0.0",
     "summary": "Full Getir Yemek Integration for Odoo 18 (Orders, Menu, Status, POS Sync)",
     "author": "Waresky",

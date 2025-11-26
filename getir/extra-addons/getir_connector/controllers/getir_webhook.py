@@ -2,39 +2,32 @@ from odoo import http
 from odoo.http import request
 import logging
 import json
+print("### webhook görünüyo ###")
 
 _logger = logging.getLogger(__name__)
 
+class GetirTest(http.Controller):
+    @http.route('/getir/test', auth='public')
+    def test(self):
+        return "GETIR ROUTE ÇALIŞTI"
 
 class GetirWebhook(http.Controller):
 
-    # ----------------------------------------------------------------------
-    # 🟣 YENİ SİPARİŞ (FULL FORMAT)
-    # ----------------------------------------------------------------------
-    @http.route(['/getir/newOrder', '/newOrder'], type='json', auth='public', csrf=False, methods=['POST'])
-    def new_order(self):
-        """
-        Getir → Odoo : newOrder webhook
-        type='json' olduğu için request.jsonrequest ile body direkt alınır.
-        """
-        payload = request.jsonrequest
-        if not payload:
-            return {"success": False, "error": "Payload not found"}
+    @http.route('/getir/newOrder', type='json', auth='public', csrf=False, methods=['POST'])
+    def new_order_long(self, **kw):
+        return self._new_order_handler()
 
-        _logger.info("GETIR NEW ORDER PAYLOAD: %s", json.dumps(payload, ensure_ascii=False))
+    @http.route('/newOrder', type='json', auth='public', csrf=False, methods=['POST'])
+    def new_order_short(self, **kw):
+        return self._new_order_handler()
 
-        try:
-            getir_order = request.env["getir.order"].sudo().create_from_payload(payload)
-        except Exception as e:
-            _logger.exception("Getir newOrder işleminde hata: %s", e)
-            return {"success": False, "error": str(e)}
-
-        return {
-            "success": True,
-            "getir_order": getir_order.name,
-            "pos_order_id": getir_order.pos_order_id.id,
-        }
-
+    def _new_order_handler(self):
+        print("### NEW ORDER ROUTE ÇALIŞTI ###")
+        payload = request.jsonrequest or {}
+        return {"ok": True}
+                    #
+                    #   tail -f var/log/odoo/odoo.log
+                    #
     # ----------------------------------------------------------------------
     # 🟣 SİPARİŞ İPTAL / CANCEL
     # ----------------------------------------------------------------------
