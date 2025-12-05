@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- CANCEL REASON LIST VIEW -->
+    <record id="view_getir_cancel_reason_list" model="ir.ui.view">
+        <field name="name">getir.cancel.reason.list</field>
+        <field name="model">getir.cancel.reason</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="getir_reason_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- CANCEL REASON FORM VIEW -->
+    <record id="view_getir_cancel_reason_form" model="ir.ui.view">
+        <field name="name">getir.cancel.reason.form</field>
+        <field name="model">getir.cancel.reason</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="getir_reason_id"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ACTION -->
+    <record id="action_getir_cancel_reason" model="ir.actions.act_window">
+        <field name="name">İptal Sebepleri</field>
+        <field name="res_model">getir.cancel.reason</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- CANCEL WIZARD VIEW -->
+    <record id="view_getir_order_cancel_wizard_form" model="ir.ui.view">
+        <field name="name">getir.order.cancel.wizard.form</field>
+        <field name="model">getir.order.cancel.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Sipariş İptali">
+                <group>
+                    <field name="order_id" readonly="1"/>
+                    <field name="reason_id" options="{'no_create': True}"/>
+                    <field name="note"/>
+                </group>
+                <group string="Eksik Ürün (Opsiyonel)">
+                    <field name="is_product_missing"/>
+                    <field name="missing_product_id" invisible="not is_product_missing"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="İptal Et" class="btn-danger"/>
+                    <button string="Vazgeç" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- DEFAULT CANCEL REASONS DATA -->
+    <data noupdate="1">
+        <record id="cancel_reason_out_of_stock" model="getir.cancel.reason">
+            <field name="name">Ürün Tükendi</field>
+            <field name="getir_reason_id">out_of_stock</field>
+            <field name="sequence">1</field>
+        </record>
+        <record id="cancel_reason_kitchen_busy" model="getir.cancel.reason">
+            <field name="name">Mutfak Yoğun</field>
+            <field name="getir_reason_id">kitchen_busy</field>
+            <field name="sequence">2</field>
+        </record>
+        <record id="cancel_reason_closing" model="getir.cancel.reason">
+            <field name="name">Restoran Kapanıyor</field>
+            <field name="getir_reason_id">closing</field>
+            <field name="sequence">3</field>
+        </record>
+        <record id="cancel_reason_technical" model="getir.cancel.reason">
+            <field name="name">Teknik Sorun</field>
+            <field name="getir_reason_id">technical_issue</field>
+            <field name="sequence">4</field>
+        </record>
+        <record id="cancel_reason_other" model="getir.cancel.reason">
+            <field name="name">Diğer</field>
+            <field name="getir_reason_id">other</field>
+            <field name="sequence">99</field>
+        </record>
+    </data>
+</odoo>

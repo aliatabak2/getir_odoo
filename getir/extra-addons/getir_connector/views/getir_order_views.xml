@@ -1,67 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- GETIR ORDER LIST VIEW -->
     <record id="view_getir_order_list" model="ir.ui.view">
         <field name="name">getir.order.list</field>
         <field name="model">getir.order</field>
         <field name="arch" type="xml">
-            <list string="Getir Orders">
+            <list string="Getir Orders" decoration-danger="state == 'cancelled'" decoration-success="state == 'delivered'" decoration-warning="state == 'new'">
                 <field name="name"/>
                 <field name="getir_id"/>
-                <field name="status"/>
+                <field name="state" widget="badge" decoration-info="state == 'new'" decoration-warning="state in ('verified', 'preparing')" decoration-success="state == 'delivered'" decoration-danger="state == 'cancelled'"/>
                 <field name="customer_name"/>
+                <field name="delivery_type"/>
                 <field name="total_price"/>
                 <field name="total_discounted_price"/>
                 <field name="payment_method_text"/>
                 <field name="pos_order_id"/>
+                <field name="create_date"/>
             </list>
         </field>
     </record>
 
+    <!-- GETIR ORDER FORM VIEW -->
     <record id="view_getir_order_form" model="ir.ui.view">
         <field name="name">getir.order.form</field>
         <field name="model">getir.order</field>
         <field name="arch" type="xml">
             <form string="Getir Order">
+                <header>
+                    <!-- Action Buttons -->
+                    <button name="action_verify" type="object" string="✓ Onayla" class="btn-primary" invisible="state != 'new'"/>
+                    <button name="action_prepare" type="object" string="🍳 Hazırla" class="btn-primary" invisible="state not in ('new', 'verified')"/>
+                    <button name="action_ready" type="object" string="✓ Hazır" class="btn-success" invisible="state != 'preparing'"/>
+                    <button name="action_handover" type="object" string="🚴 Kuryeye Teslim" class="btn-success" invisible="state not in ('preparing', 'ready') or delivery_type != 1"/>
+                    <button name="action_deliver" type="object" string="📦 Teslim Edildi" class="btn-success" invisible="state not in ('preparing', 'ready', 'handed_over')"/>
+                    <button name="action_cancel" type="object" string="❌ İptal" class="btn-danger" invisible="state in ('delivered', 'cancelled')"/>
+                    
+                    <!-- Status Bar -->
+                    <field name="state" widget="statusbar" statusbar_visible="new,verified,preparing,ready,delivered"/>
+                </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_getir_log_list)d" type="action" class="oe_stat_button" icon="fa-list">
+                            <span>Loglar</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
                     <group>
-                        <field name="name"/>
-                        <field name="getir_id"/>
-                        <field name="status"/>
-                        <field name="delivery_type"/>
-                        <field name="is_scheduled"/>
-                        <field name="scheduled_date"/>
-                    </group>
-                    <group string="Customer">
-                        <field name="customer_name"/>
-                        <field name="customer_phone"/>
-                        <field name="customer_note"/>
-                        <field name="address_text"/>
-                        <field name="address_city"/>
-                        <field name="address_lat"/>
-                        <field name="address_lng"/>
-                    </group>
-                    <group string="Prices">
-                        <field name="total_price"/>
-                        <field name="total_discounted_price"/>
-                        <field name="total_discount_amount"/>
-                        <field name="supplier_support_rate"/>
-                    </group>
-                    <group string="Payment">
-                        <field name="payment_method"/>
-                        <field name="payment_method_text"/>
-                    </group>
-                    <group string="Raw">
-                        <field name="raw_payload" widget="text"/>
+                        <group string="Sipariş Bilgisi">
+                            <field name="getir_id"/>
+                            <field name="status"/>
+                            <field name="getir_status_code"/>
+                            <field name="delivery_type" widget="selection"/>
+                            <field name="is_scheduled"/>
+                            <field name="scheduled_date" invisible="not is_scheduled"/>
+                        </group>
+                        <group string="Müşteri">
+                            <field name="customer_name"/>
+                            <field name="customer_phone"/>
+                            <field name="address_text"/>
+                            <field name="address_city"/>
+                        </group>
                     </group>
                     <group>
-                        <field name="pos_order_id"/>
+                        <group string="Fiyatlar">
+                            <field name="total_price"/>
+                            <field name="total_discounted_price"/>
+                            <field name="total_discount_amount"/>
+                            <field name="supplier_support_rate"/>
+                        </group>
+                        <group string="Ödeme">
+                            <field name="payment_method"/>
+                            <field name="payment_method_text"/>
+                        </group>
                     </group>
+                    <group>
+                        <group string="Zaman Damgaları">
+                            <field name="create_date" string="Oluşturulma"/>
+                            <field name="verified_at"/>
+                            <field name="prepared_at"/>
+                            <field name="handover_at"/>
+                            <field name="delivered_at"/>
+                            <field name="cancelled_at"/>
+                        </group>
+                        <group string="İptal Bilgisi" invisible="state != 'cancelled'">
+                            <field name="cancel_reason_id"/>
+                            <field name="cancel_note"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Müşteri Notu" name="notes">
+                            <field name="customer_note" placeholder="Müşteri notu..."/>
+                        </page>
+                        <page string="Konum" name="location">
+                            <group>
+                                <field name="address_lat"/>
+                                <field name="address_lng"/>
+                            </group>
+                        </page>
+                        <page string="POS" name="pos">
+                            <group>
+                                <field name="pos_order_id"/>
+                            </group>
+                        </page>
+                        <page string="Raw JSON" name="raw">
+                            <field name="raw_payload" widget="text" readonly="1"/>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>
     </record>
 
-   
+    <!-- ORDER ACTION -->
+    <record id="action_getir_orders" model="ir.actions.act_window">
+        <field name="name">Siparişler</field>
+        <field name="res_model">getir.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_active': 1}</field>
+    </record>
 
- 
+    <!-- SEARCH VIEW -->
+    <record id="view_getir_order_search" model="ir.ui.view">
+        <field name="name">getir.order.search</field>
+        <field name="model">getir.order</field>
+        <field name="arch" type="xml">
+            <search string="Getir Orders">
+                <field name="name"/>
+                <field name="getir_id"/>
+                <field name="customer_name"/>
+                <field name="customer_phone"/>
+                <separator/>
+                <filter string="Yeni" name="filter_new" domain="[('state', '=', 'new')]"/>
+                <filter string="Onaylandı" name="filter_verified" domain="[('state', '=', 'verified')]"/>
+                <filter string="Hazırlanıyor" name="filter_preparing" domain="[('state', '=', 'preparing')]"/>
+                <filter string="Teslim Edildi" name="filter_delivered" domain="[('state', '=', 'delivered')]"/>
+                <filter string="İptal" name="filter_cancelled" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter string="Aktif" name="filter_active" domain="[('state', 'not in', ('delivered', 'cancelled'))]"/>
+                <separator/>
+                <filter string="Bugün" name="filter_today" domain="[('create_date', '&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Durum" name="groupby_state" context="{'group_by': 'state'}"/>
+                    <filter string="Teslimat Tipi" name="groupby_delivery" context="{'group_by': 'delivery_type'}"/>
+                    <filter string="Tarih" name="groupby_date" context="{'group_by': 'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
 </odoo>

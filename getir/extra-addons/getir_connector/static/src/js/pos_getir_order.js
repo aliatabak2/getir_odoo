@@ -6,7 +6,7 @@ import { patch } from "@web/core/utils/patch";
 patch(PosStore.prototype, {
     async _loadInitialOrders() {
         // Önce orijinal sipariş yükleme mantığını çalıştır
-        await this._super(...arguments);
+        await super._loadInitialOrders(...arguments);
 
         console.log("[GETIR] POS initial orders yüklendi, Getir siparişleri filtreleniyor...");
 

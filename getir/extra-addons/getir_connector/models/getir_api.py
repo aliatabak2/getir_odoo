@@ -62,6 +62,11 @@ class GetirAPI(models.Model):
             },
         }
 
+    def action_sync_menu(self):
+        """Menüyü Getir'den çek ve senkronize et"""
+        self.ensure_one()
+        return self.env["getir.menu.sync"].action_quick_sync()
+
     # -------------------------------------------
     # TOKEN CHECK
     # -------------------------------------------
@@ -106,4 +111,295 @@ class GetirAPI(models.Model):
             raise UserError(f"Getir API Error {res.status_code}: {res.text}")
 
         return res.json() if "application/json" in res.headers.get("Content-Type", "") else res.text
+
+    # -------------------------------------------
+    # POS STATUS MANAGEMENT
+    # -------------------------------------------
+    def get_pos_status(self):
+        """POS durumunu sorgula"""
+        payload = {
+            "appSecretKey": self.app_secret_key,
+            "restaurantSecretKey": self.restaurant_secret_key,
+        }
+        url = f"{self.api_url}/restaurants/pos-status"
+        headers = {"Content-Type": "application/json"}
+        
+        res = requests.post(url, json=payload, timeout=20)
+        self.env["getir.log"].create_log("/restaurants/pos-status", payload, res.text, res.status_code, method="POST")
+        
+        if res.status_code >= 400:
+            raise UserError(f"POS Status sorgu hatası: {res.text}")
+        return res.json()
+
+    def set_pos_status(self, status: int):
+        """
+        POS durumunu ayarla.
+        status: 100 = Aktif, 200 = Pasif
+        """
+        payload = {
+            "posStatus": status,
+            "appSecretKey": self.app_secret_key,
+            "restaurantSecretKey": self.restaurant_secret_key,
+        }
+        url = f"{self.api_url}/restaurants/pos-status"
+        headers = {"Content-Type": "application/json"}
+        
+        res = requests.put(url, json=payload, timeout=20)
+        self.env["getir.log"].create_log("/restaurants/pos-status", payload, res.text, res.status_code, method="PUT")
+        
+        if res.status_code >= 400:
+            raise UserError(f"POS Status güncelleme hatası: {res.text}")
+        
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Getir POS Status",
+                "message": f"POS durumu {'Aktif' if status == 100 else 'Pasif'} olarak güncellendi.",
+                "type": "success",
+            },
+        }
+
+    def action_activate_pos(self):
+        """POS'u aktif et"""
+        return self.set_pos_status(100)
+
+    def action_deactivate_pos(self):
+        """POS'u pasif et"""
+        return self.set_pos_status(200)
+
+    # -------------------------------------------
+    # ORDER LIFECYCLE
+    # -------------------------------------------
+    def verify_order(self, order_id: str):
+        """Siparişi onayla (yeni siparişler için)"""
+        return self.call("POST", f"/food-orders/{order_id}/verify")
+
+    def verify_scheduled_order(self, order_id: str):
+        """İleri tarihli siparişi onayla"""
+        return self.call("POST", f"/food-orders/{order_id}/verify-scheduled")
+
+    def prepare_order(self, order_id: str):
+        """Siparişi hazırlanıyor olarak işaretle"""
+        return self.call("POST", f"/food-orders/{order_id}/prepare")
+
+    def handover_order(self, order_id: str):
+        """Siparişi Getir kuryesine teslim et (deliveryType: 1)"""
+        return self.call("POST", f"/food-orders/{order_id}/handover")
+
+    def deliver_order(self, order_id: str):
+        """Siparişi müşteriye teslim et (deliveryType: 2 - restoran kurye)"""
+        return self.call("POST", f"/food-orders/{order_id}/deliver")
+
+    def cancel_order_by_restaurant(self, order_id: str, reason_id: str, note: str = "", product_id: str = None):
+        """
+        Siparişi restoran tarafından iptal et.
+        product_id verilirse o ürün 'Tükendi' olarak işaretlenir.
+        """
+        payload = {
+            "cancelReasonId": reason_id,
+            "cancelNote": note,
+        }
+        if product_id:
+            payload["productId"] = product_id
+        return self.call("POST", f"/food-orders/{order_id}/cancel", json_data=payload)
+
+    def get_active_orders(self):
+        """Aktif siparişleri getir"""
+        return self.call("GET", "/food-orders/active")
+
+    def get_unapproved_orders(self):
+        """Onaylanmamış siparişleri getir"""
+        return self.call("GET", "/food-orders/unapproved")
+
+    def get_cancelled_orders(self):
+        """İptal edilen siparişleri getir (24 saat içinde)"""
+        return self.call("GET", "/food-orders/cancelled")
+
+    # -------------------------------------------
+    # RESTAURANT STATUS
+    # -------------------------------------------
+    def set_restaurant_busy(self, duration: int):
+        """
+        Yoğunluk modu aç - teslimat süresini artır.
+        duration: 15, 30 veya 45 dakika
+        """
+        if duration not in (15, 30, 45):
+            raise UserError("Yoğunluk süresi 15, 30 veya 45 dakika olmalı.")
+        return self.call("PUT", "/restaurants/delivery-duration/busyness", json_data={
+            "isBusy": True,
+            "busynessDifferenceDuration": duration,
+        })
+
+    def clear_restaurant_busy(self):
+        """Yoğunluk modunu kapat"""
+        return self.call("PUT", "/restaurants/delivery-duration/busyness", json_data={
+            "isBusy": False,
+        })
+
+    def close_restaurant_temporarily(self, minutes: int):
+        """
+        Restoranı geçici olarak kapat.
+        minutes: 15, 30 veya 45 dakika
+        """
+        if minutes not in (15, 30, 45):
+            raise UserError("Kapama süresi 15, 30 veya 45 dakika olmalı.")
+        return self.call("PUT", "/restaurants/status/close", json_data={
+            "timeOffAmount": minutes,
+        })
+
+    def disable_courier_temporarily(self, minutes: int):
+        """
+        Restoran kurye hizmetini geçici olarak kapat.
+        minutes: 15, 30 veya 45 dakika
+        """
+        if minutes not in (15, 30, 45):
+            raise UserError("Kapama süresi 15, 30 veya 45 dakika olmalı.")
+        return self.call("POST", "/restaurants/courier/disable", json_data={
+            "timeOffAmount": minutes,
+        })
+
+    # Action buttons for views
+    def action_set_busy_15(self):
+        self.set_restaurant_busy(15)
+        return self._notify("Yoğunluk", "+15 dk yoğunluk eklendi.")
+
+    def action_set_busy_30(self):
+        self.set_restaurant_busy(30)
+        return self._notify("Yoğunluk", "+30 dk yoğunluk eklendi.")
+
+    def action_set_busy_45(self):
+        self.set_restaurant_busy(45)
+        return self._notify("Yoğunluk", "+45 dk yoğunluk eklendi.")
+
+    def action_clear_busy(self):
+        self.clear_restaurant_busy()
+        return self._notify("Yoğunluk", "Yoğunluk modu kapatıldı.")
+
+    def action_close_15(self):
+        self.close_restaurant_temporarily(15)
+        return self._notify("Restoran", "15 dakika kapatıldı.")
+
+    def action_close_30(self):
+        self.close_restaurant_temporarily(30)
+        return self._notify("Restoran", "30 dakika kapatıldı.")
+
+    def action_close_45(self):
+        self.close_restaurant_temporarily(45)
+        return self._notify("Restoran", "45 dakika kapatıldı.")
+
+    def _notify(self, title, message):
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {"title": title, "message": message, "type": "success"},
+        }
+
+    # -------------------------------------------
+    # PRODUCT STATUS
+    # -------------------------------------------
+    def get_product_status(self, product_id: str):
+        """Ürün durumunu sorgula"""
+        return self.call("GET", f"/products/{product_id}/status")
+
+    def set_product_status(self, product_id: str, active: bool):
+        """Ürün durumunu güncelle"""
+        return self.call("PUT", f"/products/{product_id}/status", json_data={
+            "isActive": active,
+        })
+
+    def get_product_status_by_chain(self, chain_product_id: str):
+        """Zincir ürün durumunu sorgula"""
+        return self.call("GET", f"/products/chain-id/{chain_product_id}/status")
+
+    def set_product_status_by_chain(self, chain_product_id: str, active: bool):
+        """Zincir ürün durumunu güncelle"""
+        return self.call("PUT", f"/products/chain-id/{chain_product_id}/status", json_data={
+            "isActive": active,
+        })
+
+    def activate_option_product(self, option_id: str):
+        """Opsiyon ürünü aktif et"""
+        return self.call("POST", f"/products/option-products/{option_id}/activate-as-option")
+
+    def inactivate_option_product(self, option_id: str):
+        """Opsiyon ürünü pasif et"""
+        return self.call("POST", f"/products/option-products/{option_id}/inactivate-as-option")
+
+    # -------------------------------------------
+    # ZONES
+    # -------------------------------------------
+    def get_zones(self):
+        """Teslimat bölgelerini getir"""
+        return self.call("GET", "/restaurants/zones")
+
+    def get_zone_etas(self):
+        """ETA değerlerini getir"""
+        return self.call("GET", "/restaurants/zones/eta")
+
+    def update_zone(self, restaurant_id: str, zone_id: str, eta_id: str = None, min_basket_size: float = None):
+        """Zone ETA ve minimum sepet tutarını güncelle"""
+        payload = {}
+        if eta_id:
+            payload["eta"] = eta_id
+        if min_basket_size is not None:
+            payload["minBasketSize"] = min_basket_size
+        return self.call("PUT", f"/restaurants/{restaurant_id}/zones/{zone_id}", json_data=payload)
+
+    def activate_zone(self, zone_id: str):
+        """Bölgeyi aktif et"""
+        return self.call("PUT", f"/restaurants/zones/{zone_id}/active")
+
+    def inactivate_zone(self, zone_id: str):
+        """Bölgeyi pasif et"""
+        return self.call("PUT", f"/restaurants/zones/{zone_id}/inactive")
+
+    # -------------------------------------------
+    # INVOICE
+    # -------------------------------------------
+    def upload_invoice(self, order_id: str, file_content, filename: str):
+        """Fiş/fatura yükle"""
+        self._ensure_token()
+        url = f"{self.api_url}/food-orders/{order_id}/invoice"
+        headers = {"Authorization": f"Bearer {self.token}"}
+        files = {"file": (filename, file_content)}
+        
+        res = requests.post(url, headers=headers, files=files, timeout=30)
+        self.env["getir.log"].create_log(f"/food-orders/{order_id}/invoice", {"filename": filename}, res.text, res.status_code, method="POST")
+        
+        if res.status_code >= 400:
+            raise UserError(f"Fatura yükleme hatası: {res.text}")
+        return res.json()
+
+    def get_invoice(self, order_id: str):
+        """Fatura durumunu sorgula"""
+        return self.call("GET", f"/food-orders/{order_id}/invoice")
+
+    def delete_invoice(self, order_id: str):
+        """Faturayı sil"""
+        return self.call("DELETE", f"/food-orders/{order_id}/invoice")
+
+    # -------------------------------------------
+    # REVIEWS
+    # -------------------------------------------
+    def get_reviews(self, start_date: str, end_date: str, page: int = 1, page_size: int = 20):
+        """Sipariş değerlendirmelerini getir"""
+        params = {
+            "startDate": start_date,
+            "endDate": end_date,
+            "page": page,
+            "pageSize": page_size,
+        }
+        return self.call("GET", "/restaurants/reviews", params=params)
+
+    # -------------------------------------------
+    # MENU
+    # -------------------------------------------
+    def get_restaurant_menu(self):
+        """Restoran menüsünü getir"""
+        return self.call("GET", "/restaurants/menu")
+
+    def get_payment_methods(self):
+        """Ödeme yöntemlerini getir"""
+        return self.call("GET", "/payment-methods")
     # -------------------------------------------

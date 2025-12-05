@@ -9,11 +9,13 @@ _logger = logging.getLogger(__name__)
 class GetirOrder(models.Model):
     _name = "getir.order"
     _description = "Getir Food Order"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _order = "create_date desc"
 
     name = fields.Char(string="Order Ref", required=True, index=True)
     getir_id = fields.Char(string="Getir Order ID", index=True)
     status = fields.Char(string="Status Raw")
-    delivery_type = fields.Integer(string="Delivery Type")  # 1: Getir, 2: Restaurant courier
+    delivery_type = fields.Integer(string="Delivery Type")
     is_scheduled = fields.Boolean(string="Scheduled")
     scheduled_date = fields.Datetime(string="Scheduled Date")
     total_price = fields.Float(string="Total Price")
@@ -36,14 +38,39 @@ class GetirOrder(models.Model):
 
     pos_order_id = fields.Many2one("pos.order", string="POS Order")
 
+    # State Management
+    state = fields.Selection([
+        ("new", "Yeni"),
+        ("verified", "Onaylandı"),
+        ("preparing", "Hazırlanıyor"),
+        ("ready", "Hazır"),
+        ("handed_over", "Kuryeye Teslim"),
+        ("delivered", "Teslim Edildi"),
+        ("cancelled", "İptal"),
+    ], string="Durum", default="new", tracking=True)
+
+    # Timestamps
+    verified_at = fields.Datetime(string="Onay Zamanı")
+    prepared_at = fields.Datetime(string="Hazırlık Zamanı")
+    handover_at = fields.Datetime(string="Kurye Teslim Zamanı")
+    delivered_at = fields.Datetime(string="Müşteri Teslim Zamanı")
+    cancelled_at = fields.Datetime(string="İptal Zamanı")
+
+    # Cancel
+    cancel_reason_id = fields.Many2one("getir.cancel.reason", string="İptal Sebebi")
+    cancel_note = fields.Text(string="İptal Notu")
+
+    # Getir status code from API
+    getir_status_code = fields.Integer(string="Getir Status Code", help="325=İleri tarihli, 400=Yeni, 350=Onaylı, 500=Hazırlanıyor")
+
+    # -------------------------------------------------------------
+    # CREATE FROM PAYLOAD
+    # -------------------------------------------------------------
     @api.model
     def create_from_payload(self, payload):
-        """Getir webhook payload → getir.order + POS order oluşturur."""
-
         if not payload:
             raise UserError("Getir payload boş geldi.")
 
-        # Temel alanlar
         gid = str(payload.get("id") or payload.get("_id") or "")
         if not gid:
             raise UserError("Getir Order ID bulunamadı.")
@@ -61,7 +88,6 @@ class GetirOrder(models.Model):
         if isinstance(payload.get("paymentMethodText"), dict):
             payment_method_text = payload["paymentMethodText"].get("tr") or payload["paymentMethodText"].get("en")
 
-        # getir.order kaydı
         order_vals = {
             "name": f"Getir-{gid}",
             "getir_id": gid,
@@ -74,7 +100,7 @@ class GetirOrder(models.Model):
             "total_discount_amount": total_discount_amount,
             "supplier_support_rate": supplier_support_rate,
             "payment_method": payment_method or 0,
-            "payment_method_text": payment_method_text or "",
+            "payment_method_text": payment_method_text,
             "customer_name": client.get("name"),
             "customer_phone": client.get("contactPhoneNumber"),
             "customer_note": payload.get("note"),
@@ -85,25 +111,27 @@ class GetirOrder(models.Model):
             "raw_payload": json.dumps(payload, ensure_ascii=False),
         }
 
+        # Create getir.order
         getir_order = self.create(order_vals)
 
-        # POS order oluştur
-        pos_order = self._create_pos_order_from_getir(getir_order, payload)
+        # POS order create
+        pos_order = getir_order._create_pos_order_from_getir(payload)
         getir_order.pos_order_id = pos_order.id
 
         return getir_order
 
-    # ------------------------------------------------------------------
-    # POS ORDER OLUŞTURMA (Getir payload → pos.order)
-    # ------------------------------------------------------------------
-    def _create_pos_order_from_getir(self, getir_order, payload):
+    # -------------------------------------------------------------
+    # POS ORDER CREATE
+    # -------------------------------------------------------------
+    def _create_pos_order_from_getir(self, payload):
         self.ensure_one()
         env = self.env
 
+        getir_order = self
         client = payload.get("client", {}) or {}
         products = payload.get("products", []) or []
 
-        # === MÜŞTERİ ===
+        # CUSTOMER
         partner = env["res.partner"].sudo().search(
             [("phone", "=", client.get("contactPhoneNumber"))],
             limit=1,
@@ -117,10 +145,10 @@ class GetirOrder(models.Model):
                 "city": delivery_address.get("city"),
             })
 
-        # === POS CONFIG ===
+        # POS CONFIG
         pos_config = env["pos.config"].sudo().search([("name", "ilike", "getir")], limit=1)
         if not pos_config:
-            raise UserError("Getir POS bulunamadı. Lütfen adında 'Getir' geçen bir POS config oluşturun.")
+            raise UserError("Getir POS bulunamadı. Adında 'Getir' geçen bir POS config oluşturun.")
 
         pos_session = env["pos.session"].sudo().search([
             ("config_id", "=", pos_config.id),
@@ -129,10 +157,11 @@ class GetirOrder(models.Model):
         if not pos_session:
             raise UserError("Getir POS oturumu açık değil.")
 
-        # === MASA ===
+        # TABLE
         table = env["pos.order"].sudo().create_getir_floor_and_table()
 
-        # === LİNELAR ===
+        # LINES
+        
         lines = []
         for p in products:
             prod_name = None
@@ -154,8 +183,8 @@ class GetirOrder(models.Model):
                     "list_price": price,
                 })
 
+            # NOTE oluştur
             line_note_parts = []
-            # seçenekleri nota yaz
             for opt in p.get("options", []) or []:
                 opt_name = opt.get("name") or ""
                 if isinstance(opt_name, dict):
@@ -165,17 +194,21 @@ class GetirOrder(models.Model):
 
             note = ", ".join(line_note_parts) if line_note_parts else False
 
+            # Zorunlu Odoo18 POS alanları
             line_vals = {
                 "product_id": product.id,
                 "qty": qty,
                 "price_unit": price,
+                "price_subtotal": qty * price,
+                "price_subtotal_incl": qty * price,
             }
+
             if note:
                 line_vals["note"] = note
 
             lines.append((0, 0, line_vals))
 
-        # === POS ORDER VALS ===
+        # POS ORDER
         pos_vals = {
             "session_id": pos_session.id,
             "partner_id": partner.id,
@@ -197,7 +230,7 @@ class GetirOrder(models.Model):
 
         pos_order = env["pos.order"].sudo().create(pos_vals)
 
-        # === ÖDEME OLUŞTUR ===
+        # PAYMENT
         payment_method = self._find_pos_payment_method(pos_order, getir_order.payment_method)
         env["pos.payment"].sudo().create({
             "pos_order_id": pos_order.id,
@@ -208,22 +241,23 @@ class GetirOrder(models.Model):
         _logger.info("Getir siparişi POS'a oluşturuldu: %s", getir_order.name)
         return pos_order
 
-    # ------------------------------------------------------------------
-    # Payment Method mapping
-    # ------------------------------------------------------------------
+    # -------------------------------------------------------------
+    # PAYMENT METHOD MAP
+    # -------------------------------------------------------------
     def _map_payment_method(self, payment_method_id: int):
-        """Getir paymentMethod id → internal code (selection string)."""
-        if payment_method_id in (3, 1, 26):  # Kart / Online Payment / MasterPass
+        if payment_method_id in (3, 1, 26):
             return "card"
-        if payment_method_id == 4:  # Nakit
+        if payment_method_id == 4:
             return "cash"
         return "other"
 
+    # -------------------------------------------------------------
+    # PAYMENT METHOD FIND
+    # -------------------------------------------------------------
     def _find_pos_payment_method(self, pos_order, payment_method_id: int):
         env = self.env
         company = pos_order.company_id
 
-        # Kart
         if payment_method_id in (3, 1, 26):
             pm = env["pos.payment.method"].sudo().search([
                 ("name", "ilike", "kart"),
@@ -232,7 +266,6 @@ class GetirOrder(models.Model):
             if pm:
                 return pm
 
-        # Nakit
         if payment_method_id == 4:
             pm = env["pos.payment.method"].sudo().search([
                 ("is_cash_count", "=", True),
@@ -241,11 +274,165 @@ class GetirOrder(models.Model):
             if pm:
                 return pm
 
-        # Fallback: ilk cash method
         pm = env["pos.payment.method"].sudo().search([
             ("is_cash_count", "=", True),
             ("company_id", "=", company.id),
         ], limit=1)
         if not pm:
             raise UserError("Getir ödemesi için uygun POS ödeme yöntemi bulunamadı.")
+
         return pm
+
+    # -------------------------------------------------------------
+    # ORDER ACTIONS
+    # -------------------------------------------------------------
+    def _get_api(self):
+        """Aktif Getir API config'ini döndür"""
+        api = self.env["getir.api"].sudo().search([("active", "=", True)], limit=1)
+        if not api:
+            raise UserError("Aktif Getir API yapılandırması bulunamadı.")
+        return api
+
+    def action_verify(self):
+        """Siparişi onayla - Getir'e bildir"""
+        self.ensure_one()
+        if self.state != "new":
+            raise UserError("Sadece yeni siparişler onaylanabilir.")
+
+        api = self._get_api()
+        
+        # İleri tarihli mi kontrol et
+        if self.is_scheduled or self.getir_status_code == 325:
+            api.verify_scheduled_order(self.getir_id)
+        else:
+            api.verify_order(self.getir_id)
+
+        self.write({
+            "state": "verified",
+            "verified_at": fields.Datetime.now(),
+        })
+
+        return self._notify("Sipariş Onaylandı", f"{self.name} siparişi Getir'e onaylandı.")
+
+    def action_prepare(self):
+        """Siparişi hazırlanıyor olarak işaretle"""
+        self.ensure_one()
+        if self.state not in ("verified", "new"):
+            raise UserError("Sipariş önce onaylanmalı.")
+
+        api = self._get_api()
+        api.prepare_order(self.getir_id)
+
+        self.write({
+            "state": "preparing",
+            "prepared_at": fields.Datetime.now(),
+        })
+
+        return self._notify("Hazırlanıyor", f"{self.name} siparişi hazırlanıyor.")
+
+    def action_ready(self):
+        """Sipariş hazır - kuryeye teslim bekliyor"""
+        self.ensure_one()
+        if self.state != "preparing":
+            raise UserError("Sipariş önce hazırlanmalı.")
+
+        self.write({
+            "state": "ready",
+        })
+
+        return self._notify("Hazır", f"{self.name} siparişi hazır, kurye bekleniyor.")
+
+    def action_handover(self):
+        """Siparişi Getir kuryesine teslim et (deliveryType: 1)"""
+        self.ensure_one()
+        if self.state not in ("preparing", "ready"):
+            raise UserError("Sipariş önce hazırlanmalı.")
+
+        if self.delivery_type != 1:
+            raise UserError("Bu sipariş Getir kuryesi tarafından teslim edilmiyor. action_deliver kullanın.")
+
+        api = self._get_api()
+        api.handover_order(self.getir_id)
+
+        self.write({
+            "state": "handed_over",
+            "handover_at": fields.Datetime.now(),
+        })
+
+        return self._notify("Kuryeye Teslim", f"{self.name} siparişi Getir kuryesine teslim edildi.")
+
+    def action_deliver(self):
+        """Siparişi müşteriye teslim et (deliveryType: 2 - restoran kurye)"""
+        self.ensure_one()
+        if self.state not in ("preparing", "ready", "handed_over"):
+            raise UserError("Sipariş teslim edilebilir durumda değil.")
+
+        # Restoran kuryesi ise deliver, Getir kuryesi ise zaten handover yapılmış olmalı
+        if self.delivery_type == 2:
+            api = self._get_api()
+            api.deliver_order(self.getir_id)
+
+        self.write({
+            "state": "delivered",
+            "delivered_at": fields.Datetime.now(),
+        })
+
+        return self._notify("Teslim Edildi", f"{self.name} siparişi müşteriye teslim edildi.")
+
+    def action_cancel(self):
+        """İptal wizard'ını aç"""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Sipariş İptali",
+            "res_model": "getir.order.cancel.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_order_id": self.id},
+        }
+
+    def do_cancel(self, reason_id, note="", product_id=None):
+        """Siparişi iptal et"""
+        self.ensure_one()
+        
+        api = self._get_api()
+        reason = self.env["getir.cancel.reason"].browse(reason_id)
+        
+        api.cancel_order_by_restaurant(
+            self.getir_id,
+            reason.getir_reason_id,
+            note,
+            product_id
+        )
+
+        self.write({
+            "state": "cancelled",
+            "cancelled_at": fields.Datetime.now(),
+            "cancel_reason_id": reason_id,
+            "cancel_note": note,
+        })
+
+        # POS siparişini de iptal et
+        if self.pos_order_id:
+            self.pos_order_id.sudo().write({"state": "cancel"})
+
+        return self._notify("İptal Edildi", f"{self.name} siparişi iptal edildi.")
+
+    def _notify(self, title, message):
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {"title": title, "message": message, "type": "success"},
+        }
+
+    # -------------------------------------------------------------
+    # AUTO VERIFY (Opsiyonel - webhook'tan çağrılabilir)
+    # -------------------------------------------------------------
+    def auto_verify_if_enabled(self):
+        """Config'de otomatik onay açıksa siparişi onayla"""
+        auto_verify = self.env["ir.config_parameter"].sudo().get_param("getir.auto_verify", "False")
+        if auto_verify.lower() == "true":
+            try:
+                self.action_verify()
+            except Exception as e:
+                _logger.error("Auto verify failed for %s: %s", self.name, e)

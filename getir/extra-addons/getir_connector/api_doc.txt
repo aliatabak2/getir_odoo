@@ -1,0 +1,393 @@
+﻿
+
+
+
+
+
+
+
+
+Entegrasyon
+Ad²mlar²
+
+
+
+
+
+
+
+
+URL
+https://developers.getir.com/food/documentation/introduction
+Swagger: https://food-external-api-gateway.development.getirapi.com/documentation 
+Swagger dok³man² ³zerinden aktif endpointleri inceleyip test edebilirsiniz.
+Restoran paneli: https://food-panel-frontend.fooddev.getirapi.com/
+	Restoran paneline eri■ebilmek iin firman²za tan²mlanan kullan²c² bilgileri ile giri■ yapabilirsiniz.
+Test Ortam² URL: https://food-external-api-gateway.development.getirapi.com
+Canl² Ortam² URL: https://food-external-api-gateway.getirapi.com/
+¦leti■im Adresi: getiryemekapi@getir.com
+
+Restoran - POS Stat³s / Entegrat÷r Ãal²■ma Durumu Sorgulama ve G³ncelleme
+
+Yeni bir restoran-POS e■le■mesi yap²ld²­²nda, entegrasyonun POS Durumu varsay²lan olarak 200:Kapal² olarak ayarlanmaktad²r. Bu nedenle, her yeni e■le■menin ard²ndan entegrasyonu aktif hale getirmek iin taraf²n²zca pos durumunun aktif hale getirilmesi gerekmektedir. Bu kontrol ile bir restoran iin entegrasyonun aktif hale gelerek sipari■ ak²■²n²n ba■layabilmesi, tamamen sizin kontrol³n³zde olacakt²r.
+E■le■me tamamland²ktan hemen sonra, a■a­²da detaylar² verilen PUT metodu kullan²larak posStatus de­eri 100: Aktif olarak g³ncellenmelidir. Bu i■lem yap²lmad²­² s³rece entegrasyon al²■mayacakt²r. 
+Bu aktivasyon i■lemi sizin kontrol³n³zde olup her yeni e■le■me iin sadece bir kez yap²lmal²d²r.
+
+Ãal²■may² sonland²rd²­²n²z ya da geici bir s³re iin al²■maya ara vermek istedi­iniz restoranlar iin pos stat³s durumunu posStatus: 200 olarak g³ncelleyebilirsiniz. Bu i■lem, ilgili restoran iin entegrasyon ak²■²n² durduracakt²r.
+
+Pos stat³s³ durumunu sorgulamak iin: 
+
+Endpoint: /restaurants/pos-status
+Method: POST
+Payload: 
+
+{
+
+  "appSecretKey": "sizin_appSecretKey_degeriniz",
+  "restaurantSecretKey": "kontrol_edilecek_restoranin_secret_key_degeri"
+
+}
+
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+
+Pos stat³s³ durumunu g³ncellemek iin: 
+
+
+Endpoint: /restaurants/pos-status
+Method: PUT
+Payload: 
+{
+  "posStatus": 200,
+  "appSecretKey": "sizin_appSecretKey_degeriniz",
+  "restaurantSecretKey": "kontrol_edilecek_restoranin_secret_key_degeri"
+
+}
+
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+posStatus alan² æ100: AktifÆ ; æ200: PasifÆ de­erlerini almaktad²r ve bu de­erler firman²z²n ilgili restoran paneli iin  stat³s³n³ ifade etmektedir. 
+Restoran PanelÆde g÷r³lece­i ³zere Restoran Pos Stat³s³ ile Entegrat÷r Pos Stat³s³ de­erlerinin her ikisinin de Aktif olmas² durumunda entegrasyon ba■ar²l² bir ■ekilde sa­lanmaktad²r. E­er restoran (Restoran Durumu) ya da pos firmas² (Pos Durumu) taraf²ndan bu stat³ æ200: PasifÆ olarak de­i■tirilirse entegrasyon ak²■² sonlanmaktad²r. 
+
+Not: Bu istek iin header ile token iletmenize gerek bulunmamaktad²r. Di­er istekleriniz iin mevcut yetkilendirme s³reci devam etmektedir.
+Token
+Login iin firman²za sa­lanan secret keyler kullan²lacakt²r. Ba■ar²l² login sonras² firman²za d÷n³len token² di­er endpointleri a­²r²rken kullanman²z gerekmektedir. Token²n geerlilik s³resi 1 saattir. Bu s³re sonunda token geerlili­ini yitirece­inden, yeni bir token alman²z gerekmektedir.
+Ídeme y÷ntemleri
+Ídeme y÷ntemi ekleme, silme, aktive ve deaktive etmek iin ilgili endpointler de bu b÷l³mdedir. Ídeme y÷ntemlerinin genel listesi payment-methods b÷l³m³ndeki endpointten al²nabilir. Sipari■lerde g÷rd³­³n³z paymentMethod: 1 Masterpass ÷demesidir ve online ÷demelerden biridir, ve payment-methods endpointlerinde g÷remezsiniz. Bunun sebebi bu ÷deme tipiyle ilgili bir de­i■iklik yapam²yor olman²zd²r, GetirYemek kullan²c²lar² istedikleri ³r³n³ online ÷deme ile sipari■ olu■turabilir.
+Yeni ÷deme y÷ntemi olarak paymentMethod alan²nda '26' de­eri 'Online Ídeme' y÷ntemi olarak taraf²n²za iletilecektir. Bu ÷deme y÷ntemi standart 'Online Ídeme' olarak de­erlendirmeniz gerekmektedir.
+¦lgili alanlar;
+"paymentMethod": 26,
+"paymentMethodText": "en": "Online Payment", "tr": "Online Ídeme"
+
+Ídeme y÷ntemlerinin hepsi /payment-methods endpointÆinden sorgulanabilir.
+
+
+Restoran, Menu, ▄r³nler
+/restaurants ve /restaurants/menu ³zerinden restoran ve ³r³n bilgileriniz g÷r³lebilecektir. Restoran ve kurye ama kapama ÷zellikleriyle ilgili endpointler restaurants b÷l³m³nde g÷r³lebilir. 
+Bir ÷nceki ad²mda elde edilen ³r³n bilgileriyle products b÷l³m³ndeki endpointler kullan²labilir. Bu b÷l³mde zincir restoranlar iin chain-idler ³zerinden al²■an endpointler de g÷r³lebilir. Bu endpointler restoran bazl² olarak ³r³n IDsi tutmak istemeyen, men³s³ her restoranda standart olan zincir restoranlar iin eklenmi■tir. Chain-idler sayesinde birden fazla ■ubesi olan zincir restoranlar, her ■ubesinde sat²lan standart ³r³nlerini tek bir id ³zerinden y÷netebilmektedir.
+Zincir restoran olarak al²■an restoranlar²n, ³r³nlerin stoklar²n² ve di­er istatistiklerini tutmak iin kullanmalar² gereken de­er chainProductÆt²r. Bu id o restoran²n t³m zincir ■ubelerinde ayn² oldu­u iin stoklar sabit olan bu de­erden yap²lmal²d²r. Ayn² ■ekilde zincir restoranlarda category ve option s²ras²yla chainProductCategory ve chainOption ³zerinden takip edilmelidir. 
+Men³de tek ba■²na sat²lmayan ama bir ID sahibi olmas² beklenen elemanlar opsiyon ³r³n olarak tan²mlanm²■t²r. Opsiyon ³r³nlerin listesi restaurants/option-products endpointinden al²nabilir. 
+Opsiyon ³r³nlerin kendi alt opsiyonlar² olabilir. Bu opsiyonlar²n aktif veya inaktif olma durumlar² yine restaurants/option-products/... endpointlerinden y÷netilebilir. 
+products/option-products/à endpointlerinden de opsiyon ³r³nlerin men³deki aktif veya inaktif olma durumlar² kontrol edilebilir. Zincir restoranlar iin chain-idler opsiyon ³r³nler iin de sa­lanm²■t²r.
+Restoran paneli ³st³nden yapt²­²n²z e■itli de­i■ikliklerin taraf²m²zdan onaylanmas² gerekmektedir. Yapt²­²n²z de­i■ikliklerin hemen aktive olmamas² durumunda onay bekleme durumuna gemi■ olmas² muhtemeldir.
+
+▄r³n, Opsiyon ve ▄r³n Opsiyon Kapama, Status Sorgulama
+▄r³n Kapatma
+
+GET - /products/{productId}/status
+GET - /products/chain-id/{chainProductId}/status
+ 
+endpointi ile Men³de bulunan ³r³nlerinizin stat³lerini sorgulayabilirsiz.  
+
+
+PUT - /products/{productId}/status endpointi ile bu ³r³nleri a²k ya da kapal² olarak g³ncelleme i■lemini gerekle■tirebilirsiniz.
+ 
+PUT - /products/chain-id/{chainProductId}/status 
+Opsiyon Kapatma
+Tekil Restoranlar;
+POST - /products/{productId}/inactivate-as-option
+POST - /products/{productId}/activate-as-option
+Zincir Restoranlar;
+POST - /products/chain-id/{chainProductId}/activate-as-option
+POST - /products/chain-id/{chainProductId}/activate-as-option
+metodlar² ile ³r³nlerin ierisinde kulland²­²n²z Opsiyon ▄r³nÆleri kapatabilirsiniz.
+
+
+Írnek olarak bir ³r³ne Cheese Burger ve Classic Burger tan²mlad²­²n²zda, bu endpointler ile kapat²rsan²z sipari■ a■amas²nda bu ³r³nler g÷z³kmeyeceklerdir.
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+Opsiyon ▄r³n Kapatma
+ 
+Opsiyon ▄r³nler men³s³nde bulunan ³r³nlerinizi a■a­²da ki metodlar ile a²k ve kapal² konuma alabilirsiniz. Bu endpoint Men³lerin alt²nda bulunan t³m ³r³nlerin ieriklerinde ki opsiyon ³r³nleri kapal² ya da a²k olarak stat³lerini g³ncellemektedir.
+
+Tekil Restoranlar;
+
+POST -/products/option-products/{optionProductId}/inactivate-as-option
+POST -/products/option-products/{optionProductId}/activate-as-option
+
+Zincir Restoranlar;
+
+POST -/products/option-products/chain-id/{chainOptionProductId}/activate-as-option
+POST - products/option-products/chain-id/{chainOptionProductId}/inactivate-as-option
+
+
+ 
+Bir ▄r³ne Ait Opsiyon Kapatma
+
+Opsiyon Kapama ve Opsiyon ▄r³n Kapama metodlar² ile t³m ³r³nlerin alt²ndaki t³m opsiyon ya da t³m opsiyon ³r³nleri kapatman²z² sa­lamaktad²r.
+
+
+Tekil Restoranlar;
+/products/{productId}/option-categories/{optionCategoryId}/options/{optionId}/status
+
+Zincir Restoranlar;
+/products/chain-id/{chainProductId}/option-categories/{chainOptionCategoryId}/options/{chainOptionId}/status 
+
+endpointi ile Bir ³r³n³n alt²nda bulunan belirli bir kategorideki opsiyonu tekil olarak kapatabilirsiniz. Bunun iin ▄r³n id, category id ve opsiyon id belirtmeniz gerekmektedir.
+
+
+Test sipari■
+Test sipari■lerinizi http://web-workspace.develop.getirapi.com/ ³zerinden verebilirsiniz. Linke giri■ yapt²­²n²zda test ortam² iin size verilen kullan²c² ad² ve parola bilgisini kullanamazs²n²z. Getir gerek ortam²nda bulunan ³yelik ad²mlar²n² aynen takip ederek test ortam²na da ³ye olman²z, ³yeli­inize adres eklemeniz gerekmektedir.
+OTP Giri■ Ìifresi: 1234
+Sipari■ esnas²nda masterpass ile giri■ yap²l²rsa development ortam²nda ÷deme al²nmamaktad²r.
+Sipari■lerin do­ru ilerleyebilmesi iin Restoranlar²n adresini de­i■tirmeyiniz. Restoranlar Arnavutk÷y Mah. iinde tan²mlan²rlar ki test kuryeleri hizmet verebilsin.
+Restoranlar² g÷r³nt³leyebilmeniz iin kullan²c² adresinizi Arnavutk÷y Mah. yapman²z gerekmektedir. Aksi halde restoranlar kapal² g÷z³kecektir.
+Test kart²
+https://creditcardgenerator.com/visa-credit-card-generator/ adresinden test iin kullan²labilecek kart bilgileri alabilirsiniz. Test sipari■lerini kolayla■t²rmak iin panelden restoran²n²z iin kap²da ÷demeyi aktive edip kap²da ÷demeye uygun ÷deme metotlar²n² ekleyebilirsiniz.
+
+Sipari■ ak²■²
+Verilen sipari■e dair bilgileri restoran paneli ve /food-orders/active endpointi ³zerinden g÷rebilirsiniz. Sipari■in durumu verify, prepare, handover, deliver ve cancel endpointleri ³zerinden y÷netilir. Sipari■ y÷netimiyle ilgili detaylar a■a­²dad²r:
+Bu sipari■lerin status alan² 325 veya 400 olabilir. 
+400 zaman² gelen veya yeni verilmi■ sipari■lerdir. 
+/verify ile sipari■ onaylan²r.
+325 ileri tarihli sipari■lerdir.
+/verify-scheduled ile onaylan²r.
+Onaylanan sipari■in status alan² 350 olur ve art²k /unapproved endpointi ile bu sipari■ gelmez.
+Sipari■ teslim zaman²ndan 1 saat ÷nce sipari■in status alan² 500 olarak atan²r ve sipari■ haz²rlan²yor olarak g÷z³k³r.
+Ak²■ teslimat t³r³ne g÷re devam eder.
+Teslimat² Restoran kuryesinin yapaca­² sipari■lerde (deliveryType: 2) ak²■ a■a­²daki ■ekildedir:
+/prepare endpointine istek yap²larak sipari■in stat³s³ haz²rlan²yor olarak g³ncellenir.
+/deliver endpointine istek yap²larak sipari■in stat³s³ teslim edildi olarak g³ncellenir.
+Teslimat² Getir kuryesinin yapaca­² sipari■lerde (deliveryType: 1) ak²■ a■a­²daki ■ekildedir:
+/prepare endpointine istek yap²larak sipari■in stat³s³ haz²rlan²yor olarak g³ncellenir.
+/handover endpointine istek yap²larak sipari■in stat³s³ getir kuryesine teslim edildi olarak g³ncellenir.
+Bundan sonraki ad²mlar² (/deliver gibi) Getir kuryesi taraf²ndan devam ettirilir.
+verify, prepare, deliver endpointlerinin a­r²lma s³releri aras²nda en az 1 dakika olmal²d²r. Verify a­r²ld²ktan sonra prepare endpointine istek yap²labilmesi iin en az 1 dakika gemelidir. Ayn² ■ekilde prepare ve deliver endpointleri aras²nda da bu kural geerlidir.
+Sipari■in Ba■ka Ìubeye Aktar²lmas²
+Zincir restoranlar iin e­er sipari■in verildi­i ■ube yo­unsa, evredeki yak²n ba■ka bir ■ubeye sipari■i aktar²p s³recin orada devam etmesi sa­lanabilir. Sipari■ kabul edildikten sonra, sipari■in aktarabilece­i restoranlar² almak iin /food-orders/{foodOrderId}/available-restaurants-for-transfer endpointÆine istek at²l²r. Buradan d÷nen restoranlardan biri iin /food-orders/{foodOrderId}/transfer-to-another-restaurant endpointÆine istek at²larak transfer i■lemi gerekle■tirilir. 
+Sipari■ transfer ÷zelli­i sadece zincir ■ubeleri iin kullan²labilir. Bu ÷zelli­in kullan²m izni, GetirYemekÆin kontrol³ndedir.
+
+
+Sipari■ onaylama s³re limiti
+Sipari■ ilk geldi­i zaman 30 saniye iinde bir cevap d÷n³lmesi gerekmektedir. Sipari■in kabul³ veya iptali cevap olarak kabul edilir. Ancak 30 saniye iinde bu geri d÷n³■ gerekle■tirilmedi­i takdirde restoran yetkilisi IVR call ile aran²r. E­er yetkiliye sipari■ verildikten 5 dakika sonra hala ula■²lmam²■sa onaylama s³resi limitine a■²lm²■ olur ve restoran kapal² de­ilse kapat²l²r.
+POS firmas² gelen sipari■i hen³z sisteme almadan panel ³zerinden onaylanmas² durumunda, /food-orders/active endpointi ile aktif sipari■leri kontrol edebilir. 
+¦leri tarihli sipari■
+¦leri tarihli sipari■lerde sipari■ sisteminize geldi­inde ÷n onay i■lemi yap²lmal²d²r, 
+325 ileri tarihli sipari■lerdir.
+/verify-scheduled ile onaylan²r.
+Onaylanan sipari■in status alan² 350 olur ve art²k /unapproved endpointi ile bu sipari■ gelmez.
+Sipari■ teslim zaman²ndan 1 saat ÷nce sipari■in status alan² 500 olarak atan²r ve sipari■ haz²rlan²yor olarak g÷z³k³r.
+scheduledDate alan², sipari■in m³■teriye ne zaman teslim edilece­i bilgisini ierir. (isScheduled - ileri tarihli sipari■ seene­i, ■u anda Getir kuryeleri taraf²ndan yap²lan teslimatlar iin kapal²d²r)
+Entegrasyon S³reci - Sipari■ Y÷netimi
+Firman²za ba­l² restoranlara gelen sipari■ler anl²k olarak iletti­imiz entegrasyon t³r³n³ setiyseniz. Bunun iin bize yeni sipari■ ve sipari■ iptal iin 2 ayr² URL ve g³venli ileti■im iin GetirÆe ÷zel bir x-api-key iletmeniz gerekmektedir. ¦letece­iniz URLÆlere hem yeni sipari■te hem de sipari■ iptalde t³m sipari■ bilgisi POST metoduyla g÷nderilecektir.
+
+Sipari■ler ilk maddede belirtildi­i ³zere taraf²n²za iletilecektir. Taraf²n²za iletilen ve datay² i■leyemedi­iniz/kar■²layamad²­²n²z bir durumda ilgili sipari■leri /unapproved endpointinden & iptal edilen sipari■leri ise /cancelled endpointi ³zerinden takip edebilirsiniz. ¦ptal olan sipari■ler 24 saat iinde bu endpointten kaybolacakt²r. /active endpointi ³zerinden mevcut sipari■lerinizi sorgulayabilirsiniz. 
+Entegrasyon kayd²n²z olu■tururken default olarak entegrasyon t³r³n³z 2 olarak belirlenmektedir. E­er 1. Tip Entegrasyonu kullanmak isterseniz bizi bilgilendirmeniz gerekmektedir. Bu entegrasyon tipi iin sizden sipari■ ve iptalleri g÷nderebilmemiz iin iki tane endpoint bilgisi almam²z gerekmektedir.
+
+Fi■/Fatura G÷rselinin Y³klenmesi ve Sipari■ ile ili■kilendirilmesi
+
+Sipari■ler ile ili■kili mali fi■/fatura g÷rselinin y³klenmesi ile ilgili istek iletece­iniz path ve ayr²nt²lar a■a­²daki gibidir:
+
+Fi■/Fatura G÷rselinin Y³klenmesi: 
+Endpoint: /food-orders/{orderId}/invoice
+Method: POST
+File: formData
+Response: {"result": true}
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+Fi■/Fatura G÷rselinin Kontrol³ ya da Sorgulanmas²:
+
+Endpoint: /food-orders/{orderId}/invoice
+Method: GET
+Response: {"url": "url", "invoiceStatus": 200}
+Status: created:100, approved:200, not_approved:300
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+Fi■/Fatura G÷rselinin Silinmesi: 
+
+Endpoint: /food-orders/{orderId}/invoice
+Method: DELETE
+Response: {"result": true}
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+Sipari■ iptali
+Sipari■ ¦ptal Sebepleri
+
+ Eksik ▄r³n ile Sipari■ ¦ptali
+
+¦ptal i■lemi, sipari■in iptal edilmek istendi­i andaki stat³s³ne g÷re farkl² seenekler ile iptal edilir. E­er iptal etmek istedi­iniz sipari■ æEksik ▄r³nÆ sebebi ile iptal ediliyorsa ³r³ne ait id bilgisi ile iptal iste­inin yollanmas² durumunda ilgili ³r³n men³de g³nl³k olarak kapat²lacakt²r.
+
+Yeni sipari■ datas² ierisinde yer alan ôproductsö objesinin ierisindeki ôproductö alan²ndaki id ile iptal iste­ini iletmeniz gerekmektedir. 
+
+Endpoint: /food-orders/{orderId}/cancel
+Method: POST
+Payload:
+{
+  "cancelNote": "string",
+  "cancelReasonId": "string",
+  "productId": "string"
+}
+
+¦ste­in ba■ar²l² bir ■ekilde iletilmesi sonucunda ilgili ³r³n men³de ôT³kendiö ifadesi ile g÷r³nt³lenecek ve sepete eklenemeyecektir.
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+Kurye Stat³leri
+ Sipari■ Stat³leri
+
+
+Restoran Hizmet B÷lgesi (Zone) G³ncelleme
+
+Minimum Sepet Tutar² (minBasketSize) ve Tahmini Teslim Zaman² (ETA) bilgisini B÷lge (Zone) ³zerinde tan²mlayabilir ve g³ncelleyebilirsiniz. G³ncelleme i■lemi iin a■a­²da yer alan ad²mlar² izleyebilirsiniz:
+
+/restaurants/zones endpointi iin GET methodu ile mevcut zone tan²mlar²na eri■ebilirsiniz. "_id": "string" alan² zoneId de­erinizdir. ônameö alan² ise restoran panelde g÷r³len b÷lge ismidir.
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+/restaurants/zones/eta endpointi iin GET methodu ile t³m ETA de­erlerine ait Id bilgisini eri■ebilirsiniz. Kullanmak istedi­iniz de­er iin "_id" alan²ndaki de­eri zone ³zerindeki ETA de­erini g³ncellemek iin kullanman²z gerekecektir.
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+A■a­²da ayr²nt²lar² yer alan endpoint ile ETA ve minBasketSize de­erlerini olu■turabilir ve g³ncelleyebilirsiniz.
+Endpoint: /restaurants/{restaurantId}/zones/{zoneId}
+Method: PUT
+Payload: 
+	{
+  "eta": "6560d0c2234b8411ed8da575",
+  "minBasketSize": 23
+}
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z. 
+
+Zone durumu g³ncellemek iin ise PUT methodunu kullanabilirsiniz. 
+Aktif: /restaurants/zones/{zoneId}/active (Swagger)
+Pasif: /restaurants/zones/{zoneId}/inactive (Swagger)
+
+Restoran æYo­una AlÆ Aksiyonu
+
+Restoranlar²n mutfak ya da kurye kaynakl² yo­unluk ya■amas² durumunda kullan²c²lara daha do­ru teslimat s³resi g÷stermesi ve kullan²c² ■ikayetinin ÷nlenmesi ad²na kullan²c²lara g÷sterilen teslimat s³releri +15, +30 ve +45 dk art²rabilir. Kullan²m senaryolar²na dair ayr²nt²lar a■a­²daki gibidir: 
+
+Endpoint: /restaurants/delivery-duration/busyness
+Method: PUT
+Payload:
+	{
+   	 "isBusy": true, 
+  	 "busynessDifferenceDuration": 45
+}
+
+busynessDifferenceDuration alan²n² 15, 30 ve 45 dakika olmak ³zere ³ farkl² ■ekilde yollayabilirsiniz. E­er yo­una ald²­²n²z bir restoran²n durumunu eski haline getirmek istiyorsan²z isBusy alan²n²n false olarak yollaman²z yeterlidir. Írnek payload: 
+
+Payload:
+	{
+   	 "isBusy": false
+}
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+
+Restoran Hizmet Durumunu Belirli Bir S³re iin De­i■tirme
+
+K²sa bir s³re iin restoran hizmet durumunu de­i■tirmek isterseniz tercih edece­iniz zaman aral²­² iin kapama ilgili iste­i iletebilirsiniz.
+
+K²sa s³reli kapama seenekleri: 15, 30, 45 (Dakika)
+
+Endpoint: /restaurants/status/close
+Method: PUT
+Payload:
+	{
+   	 "timeOffAmount": 15
+}
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+Kurye Hizmet Durumu Belirli Bir S³re iin De­i■tirme
+
+K²sa bir s³re iin restoran kuryesi hizmet durumunu de­i■tirmek isterseniz tercih edece­iniz zaman aral²­² iin ilgili iste­i iletebilirsiniz. 
+
+K²sa s³reli kapama seenekleri: 15, 30, 45 (Dakika)
+
+Endpoint: /restaurants/courier/disable
+Method: POST
+Payload:
+	{
+   	 "timeOffAmount": 15
+}
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+
+Sipari■ De­erlendirmelerinin Al²nmas²
+
+Restoran ÷zelinde sipari■ler ile ilgili de­erlendirmeleri ve yorumlar² almak iin a■a­²da bilgileri yer alan path ³zerinden istekte bulunabilirsiniz.
+
+Endpoint: /restaurants/reviews
+Method: GET
+Parameters: startDate*, endDate*, page, pageSize
+
+¦lgili istek iin swaggerÆa ula■mak denemek iin t²klay²n²z.
+Rate limiter
+Entegrasyonda endpointlerimize (/periodic endpointleri hari) k²sa periyotlarla d³zenli request yap²lmas²n² engellemek iin rate limiter kullan²lmaktad²r.
+
+Írnek: E­er 60 saniye iinde 300+ request gelirse, istekleriniz 20 saniye boyunca engellenir.
+
+
+Sistem Saati
+Sistemden d÷nen tarih ve saatlerin hepsi Greenwich Mean Time(GMT)Æd²r. Dolay²s²yla sipari■ tarihi ve onay tarihi aras²nda saat fark² g÷zlemlenebilir.
+Ortak kampanyalarda sipari■ tutar² hesaplamas²
+Sipari■ ³st³nde bulunan totalPrice, sepetteki ³r³nlerin toplam fiyat²d²r. totalDiscountedPrice, totalPrice alan²ndan m³■teriye yap²lan indirimin restoran taraf²ndan kar■²lanan k²sm²n²n ²kar²lmas²yla bulunur. Írnek olarak 30 liral²k bir sepette 5 liral²k bir indirim oldu­unu ve bu indirimin %40'²n²n restoran %60'²n²n Getir taraf²ndan kar■²land²­²n² d³■³n³rsek totalPrice: 30, totalDiscountedPrice: 28 olarak g÷z³kecektir. Kap²da ÷deme al²nan sipari■lerde GetirÆin kar■²lad²­² bir indirim olmad²­²ndan promosyon kullan²lan sipari■lerde m³■teriden tahsil edilecek tutar totalDiscountedPrice alan² olacakt²r.
+supplierSupportRate alan² Getir ve RestoranÆ²n ortak d³zenledi­i kampanyalarda indirimin y³zde ka²n²n Restoran taraf²ndan kar■²laca­²n² belirtir. Írne­in totalPrice 50 TL, totalDiscountAmount 10 TL ve supplierSupportRate 80 oldu­u durumda; 10 TL indirimin, 8 TL si restoran taraf²ndan kar■²lan²r. Restoran 42 TL ÷deme al²r.
+Ortak kampanyalarda GetirÆin pay²na d³■en indirim tutar² restoranlarla payla■²lmamaktad²r. Dolay²s²yla restorana totalPrice ve totalDiscountedPrice fieldlar²yla restoran bilgilendirilir.
+
+Seilen kampanya e­er komple Getir taraf²ndan kar■²lan²yorsa restoranÆa totalDiscountedPrice alan² d÷n³lmez sadece totalPrice alan² d÷n³l³r. Test ortam²ndaki birok kampanya bu gruba dahildir.
+Sipari■ bilgisi alanlar²
+Sipari■ bilgilerinde herhangi bir alan null gelemez gibi bir kural²m²z yok, entegre olan firmalardan kendileri iin mutlaka gerekli alanlar ³st³nde kontrol yap²p di­er alanlarla ilgili herhangi bir kontrol koymamas²n² bekliyoruz, aksi durumda sipari■i ok da etkilemeyen baz² alanlar²n olmamas² ya da format²n²n farkl² olmas² gibi sebeplerden kaynakl² sipari■ iptalleri ya■anabiliyor.
+Servis Hata Mesajlar²
+
+
+
+
+TLS Versiyonu
+TLSv1.2_2019
+Canl² ortama ²kmadan yap²lmas² gereken testler
+Sipari■ iptalinin kontrol³
+Restoran Getirsin Sipari■i kontrol³
+Getir Getirsin Sipari■i kontrol³
+Kampanyal² sipari■ler (Restoran destekli ve/veya Getir destekli) kontrol³
+¦leri tarihli sipari■ kontrol³
+
+Restoran Paneli - https://food-panel-frontend.fooddev.getirapi.com/
+Restoran²n y÷netiminin sa­land²­² bu paneli; men³ye ³r³n eklemek-²karmak, ³r³nlere opsiyon eklemek, kurye saatlerini ve teslimat b÷lgelerini d³zenlemek gibi birok ama iin kullanabilirsiniz.
+Panelin kullan²m²n² anlatan k²sa ve ÷­retici videolar² ilgili sayfalar²n sa­ taraf²nda Sayfa Kullan²m² isimli butona t²klayarak izleyebilirsiniz.
+
+
+Restoran Panelinde Men³ Olu■turma
+Paneldeki Men³ sekmesinden ³r³nler, opsiyonlar ve paket men³ler olu■turulabilir. Bu sayfan²n kullan²m²n² genel seviyede ÷­renmek iin ÷ncelikle Sayfa Kullan²m² butonuna t²klayarak e­itim videosunu izleyiniz.
+Paket Men³ Olu■turma
+Írnek olarak bir etli yemek, orba ve tatl²y² kapsayan Etli Yemek Men³y³ olu■turman²n ad²mlar² :  
+Paket Men³ olu■turmak iin ÷ncelikle Yeni ▄r³n Ekle butonuna bas²n²z. ▄r³n³n ismini Etli Yemek Men³ koyup, a²klamas²na bir etli yemek + orba + tatl² yaz²n²z. Sonras²nda ³r³n³n default fiyat²n² belirleyiniz.
+Opsiyon Ekle butonuna basarak opsiyonlar² girebilirsiniz. ¦lk opsiyon olarak Etli Yemekler ve daha sonras²nda alt²na bu etli yemeklerin neler oldu­unu Alt Opsiyonlar olarak giriniz. Alt OpsiyonÆu 2 farkl² ■ekilde olu■turabilirsiniz. Alt Opsiyon e­er daha ÷nceden ekledi­iniz bir ³r³n ise ³r³n seene­i seilerek listeden eklenebilir. E­er Alt Opsiyon kendi ba■²na sat²lamayan ancak opsiyon olarak sat²lan bir ³r³n ise Metin seene­ini seerek opsiyonu ekleyebilirsiniz. Extra malzeme ieren ve daha maliyetli ³r³nlere ek fiyat eklemek iin Alt OpsiyonÆun fiyat k²sm²na o ³r³n seildi­inde men³n³n default fiyat²na eklenecek extra ³creti girebilirsiniz. 
+Etli Yemekler opsiyonunu olu■turduktan sonra Ãorba ve Tatl² opsiyonlar²n² da ayn² ■ekilde sisteme girerek men³n³z³ tamamlayabilirsiniz.

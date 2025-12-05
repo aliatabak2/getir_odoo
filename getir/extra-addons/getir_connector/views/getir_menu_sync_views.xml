@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================ -->
+    <!-- MENU SYNC VIEWS -->
+    <!-- ============================================ -->
+
+    <!-- MENU SYNC LIST VIEW -->
+    <record id="view_getir_menu_sync_list" model="ir.ui.view">
+        <field name="name">getir.menu.sync.list</field>
+        <field name="model">getir.menu.sync</field>
+        <field name="arch" type="xml">
+            <list string="Menu Sync History" decoration-success="state == 'done'" decoration-danger="state == 'error'" decoration-warning="state == 'running'">
+                <field name="name"/>
+                <field name="state" widget="badge"/>
+                <field name="sync_date"/>
+                <field name="total_products"/>
+                <field name="created_products"/>
+                <field name="updated_products"/>
+                <field name="total_options"/>
+                <field name="duration"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- MENU SYNC FORM VIEW -->
+    <record id="view_getir_menu_sync_form" model="ir.ui.view">
+        <field name="name">getir.menu.sync.form</field>
+        <field name="model">getir.menu.sync</field>
+        <field name="arch" type="xml">
+            <form string="Menu Sync">
+                <header>
+                    <button name="action_start_sync" type="object" string="🔄 Senkronizasyonu Başlat" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_start_sync" type="object" string="🔄 Tekrar Dene" class="btn-warning" invisible="state != 'error'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,running,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Ayarlar">
+                            <field name="create_odoo_products"/>
+                            <field name="update_prices"/>
+                            <field name="sync_to_pos"/>
+                        </group>
+                        <group string="Bilgiler">
+                            <field name="sync_date"/>
+                            <field name="duration" widget="float_time"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="İstatistikler">
+                            <field name="total_products"/>
+                            <field name="created_products"/>
+                            <field name="updated_products"/>
+                        </group>
+                        <group>
+                            <field name="total_options"/>
+                            <field name="total_categories"/>
+                        </group>
+                    </group>
+                    <group string="Hata" invisible="state != 'error'">
+                        <field name="error_message" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- MENU SYNC ACTION -->
+    <record id="action_getir_menu_sync" model="ir.actions.act_window">
+        <field name="name">Menü Senkronizasyonu</field>
+        <field name="res_model">getir.menu.sync</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- QUICK SYNC SERVER ACTION -->
+    <record id="action_quick_menu_sync" model="ir.actions.server">
+        <field name="name">Menüyü Güncelle</field>
+        <field name="model_id" ref="model_getir_menu_sync"/>
+        <field name="binding_model_id" ref="model_getir_menu_sync"/>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_quick_sync()
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- MENU ITEM VIEWS -->
+    <!-- ============================================ -->
+
+    <!-- MENU ITEM LIST VIEW -->
+    <record id="view_getir_menu_item_list" model="ir.ui.view">
+        <field name="name">getir.menu.item.list</field>
+        <field name="model">getir.menu.item</field>
+        <field name="arch" type="xml">
+            <list string="Getir Menü Ürünleri" decoration-muted="not is_active">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category_name"/>
+                <field name="price" widget="monetary"/>
+                <field name="is_active"/>
+                <field name="product_id"/>
+                <field name="getir_product_id"/>
+                <field name="last_sync"/>
+                <button name="action_create_odoo_product" type="object" string="Ürün Oluştur" icon="fa-plus" invisible="product_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- MENU ITEM FORM VIEW -->
+    <record id="view_getir_menu_item_form" model="ir.ui.view">
+        <field name="name">getir.menu.item.form</field>
+        <field name="model">getir.menu.item</field>
+        <field name="arch" type="xml">
+            <form string="Getir Menü Ürünü">
+                <header>
+                    <button name="action_create_odoo_product" type="object" string="Odoo Ürün Oluştur" class="btn-primary" invisible="product_id"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                        <h3><field name="name_en" placeholder="English Name"/></h3>
+                    </div>
+                    <group>
+                        <group string="Ürün Bilgisi">
+                            <field name="getir_product_id"/>
+                            <field name="chain_product_id"/>
+                            <field name="price"/>
+                            <field name="is_active"/>
+                            <field name="is_option_product"/>
+                        </group>
+                        <group string="Kategori">
+                            <field name="category_id"/>
+                            <field name="category_name"/>
+                            <field name="chain_category_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Odoo Bağlantısı">
+                            <field name="product_id"/>
+                        </group>
+                        <group string="Sync">
+                            <field name="last_sync"/>
+                            <field name="image_url" widget="url"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Açıklama" name="description">
+                            <field name="description"/>
+                        </page>
+                        <page string="Opsiyonlar" name="options">
+                            <field name="option_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="category_name"/>
+                                    <field name="name"/>
+                                    <field name="price"/>
+                                    <field name="is_active"/>
+                                    <field name="is_required"/>
+                                    <field name="is_default"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Raw JSON" name="raw">
+                            <field name="raw_data" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- MENU ITEM SEARCH VIEW -->
+    <record id="view_getir_menu_item_search" model="ir.ui.view">
+        <field name="name">getir.menu.item.search</field>
+        <field name="model">getir.menu.item</field>
+        <field name="arch" type="xml">
+            <search string="Menü Ürünleri">
+                <field name="name"/>
+                <field name="getir_product_id"/>
+                <field name="category_name"/>
+                <separator/>
+                <filter string="Aktif" name="filter_active" domain="[('is_active', '=', True)]"/>
+                <filter string="Opsiyon Ürünleri" name="filter_options" domain="[('is_option_product', '=', True)]"/>
+                <filter string="Odoo'da Var" name="filter_has_product" domain="[('product_id', '!=', False)]"/>
+                <filter string="Odoo'da Yok" name="filter_no_product" domain="[('product_id', '=', False)]"/>
+                <separator/>
+                <group expand="0" string="Group By">
+                    <filter string="Kategori" name="groupby_category" context="{'group_by': 'category_name'}"/>
+                    <filter string="Aktif" name="groupby_active" context="{'group_by': 'is_active'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- MENU ITEM ACTION -->
+    <record id="action_getir_menu_items" model="ir.actions.act_window">
+        <field name="name">Menü Ürünleri</field>
+        <field name="res_model">getir.menu.item</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_active': 1}</field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- MENU OPTION VIEWS -->
+    <!-- ============================================ -->
+
+    <!-- MENU OPTION LIST VIEW -->
+    <record id="view_getir_menu_option_list" model="ir.ui.view">
+        <field name="name">getir.menu.option.list</field>
+        <field name="model">getir.menu.option</field>
+        <field name="arch" type="xml">
+            <list string="Menü Opsiyonları" decoration-muted="not is_active">
+                <field name="sequence" widget="handle"/>
+                <field name="menu_item_id"/>
+                <field name="category_name"/>
+                <field name="name"/>
+                <field name="price" widget="monetary"/>
+                <field name="is_active"/>
+                <field name="is_required"/>
+                <field name="is_default"/>
+                <field name="min_count"/>
+                <field name="max_count"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- MENU OPTION ACTION -->
+    <record id="action_getir_menu_options" model="ir.actions.act_window">
+        <field name="name">Menü Opsiyonları</field>
+        <field name="res_model">getir.menu.option</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- MENU CATEGORY VIEWS -->
+    <!-- ============================================ -->
+
+    <!-- MENU CATEGORY LIST VIEW -->
+    <record id="view_getir_menu_category_list" model="ir.ui.view">
+        <field name="name">getir.menu.category.list</field>
+        <field name="model">getir.menu.category</field>
+        <field name="arch" type="xml">
+            <list string="Menü Kategorileri" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="getir_category_id"/>
+                <field name="is_active"/>
+                <field name="item_count"/>
+                <field name="pos_category_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- MENU CATEGORY ACTION -->
+    <record id="action_getir_menu_categories" model="ir.actions.act_window">
+        <field name="name">Menü Kategorileri</field>
+        <field name="res_model">getir.menu.category</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

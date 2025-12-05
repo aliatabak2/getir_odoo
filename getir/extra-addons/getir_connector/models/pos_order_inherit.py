@@ -34,49 +34,47 @@ class PosOrder(models.Model):
     @api.model
     def create_getir_floor_and_table(self):
         """
-        Odoo 18 için floor/table oluşturma.
-        Masa numarası (table_number) zorunlu olduğu için 999 kullanıyoruz.
+        Getir siparişleri için tek bir floor + tek bir masa üretir / bulur.
+        Odoo 18'de mevcut model isimleri:
+            - restaurant.floor
+            - restaurant.table
         """
-        env = self.env
-        Floor = env["restaurant.floor"]
-        Table = env["restaurant.table"]
+        Floor = self.env["restaurant.floor"].sudo()
+        Table = self.env["restaurant.table"].sudo()
 
-        getir_floor = None
-        getir_table = None
+        # 1) Floor'u bul / oluştur
+        floor = Floor.search([("name", "=", "Getir")], limit=1)
+        if not floor:
+            floor = Floor.create({
+                "name": "Getir",
+                "sequence": 50,
+                "active": True,
+            })
+            _logger.info("Getir floor oluşturuldu: %s", floor.id)
 
-        try:
-            getir_floor = Floor.search([("name", "=", "Getir")], limit=1)
-            if not getir_floor:
-                getir_floor = Floor.create({
-                    "name": "Getir",
-                    "sequence": 50,
-                    "active": True,
-                })
-                _logger.info("Getir floor oluşturuldu: %s", getir_floor.id)
-        except Exception as e:
-            _logger.error("Getir floor oluşturulurken hata: %s", e)
+        # 2) Masa'yı bul / oluştur
+        table = Table.search([
+            ("floor_id", "=", floor.id),
+            ("table_number", "=", 999)
+        ], limit=1)
 
-        try:
-            getir_table = Table.search([("table_number", "=", 999)], limit=1)
-            if not getir_table:
-                vals = {
-                    "table_number": 999,
-                    "seats": 0,
-                    "active": True,
-                    "shape": "square",
-                    "width": 120,
-                    "height": 120,
-                    "position_h": 200,
-                    "position_v": 200,
-                    "color": "#8e44ad",
-                    "floor_id": getir_floor.id if getir_floor else False,
-                }
-                getir_table = Table.create(vals)
-                _logger.info("Getir table oluşturuldu: %s", getir_table.id)
-        except Exception as e:
-            _logger.error("Getir table oluşturulurken hata: %s", e)
+        if not table:
+            vals = {
+                "table_number": 999,
+                "seats": 1,
+                "active": True,
+                "shape": "square",
+                "width": 120,
+                "height": 120,
+                "position_h": 200,
+                "position_v": 200,
+                "color": "#8e44ad",
+                "floor_id": floor.id,
+            }
+            table = Table.create(vals)
+            _logger.info("Getir table oluşturuldu: %s", table.id)
 
-        return getir_table
+        return table
 
     @api.model_create_multi
     def create(self, vals_list):

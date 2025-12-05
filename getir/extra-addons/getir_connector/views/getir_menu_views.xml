@@ -1,14 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-
-
-  <!-- ACTION: getir.order -->
-    <record id="action_getir_orders" model="ir.actions.act_window">
-        <field name="name">Siparişler</field>
-        <field name="res_model">getir.order</field>
-        <field name="view_mode">list,form</field>
-     
-    </record>
+    <!-- ============================================ -->
+    <!-- PRODUCT MAP VIEWS -->
+    <!-- ============================================ -->
 
     <!-- PRODUCT MAP LIST -->
     <record id="view_getir_product_map_list" model="ir.ui.view">
@@ -16,6 +11,7 @@
         <field name="model">getir.product.map</field>
         <field name="arch" type="xml">
             <list editable="bottom">
+                <field name="name"/>
                 <field name="getir_product_id"/>
                 <field name="getir_chain_product_id"/>
                 <field name="product_id"/>
@@ -32,6 +28,7 @@
             <form>
                 <sheet>
                     <group>
+                        <field name="name"/>
                         <field name="getir_product_id"/>
                         <field name="getir_chain_product_id"/>
                         <field name="product_id"/>
@@ -49,9 +46,14 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- ============================================ -->
+    <!-- MAIN MENU STRUCTURE -->
+    <!-- ============================================ -->
+
+    <!-- ROOT MENU -->
     <menuitem id="menu_getir_root"
               name="Getir Connector"
-               parent="point_of_sale.menu_point_root"
+              parent="point_of_sale.menu_point_root"
               sequence="99"/>
 
     <!-- SUBMENU : Orders -->
@@ -61,91 +63,66 @@
               action="action_getir_orders"
               sequence="1"/>
 
+    <!-- SUBMENU : Menu Sync Parent -->
+    <menuitem id="menu_getir_menu_parent"
+              name="Menü Yönetimi"
+              parent="menu_getir_root"
+              sequence="2"/>
+
+    <!-- SUBMENU : Menu Sync -->
+    <menuitem id="menu_getir_menu_sync"
+              name="Menü Senkronizasyonu"
+              parent="menu_getir_menu_parent"
+              action="action_getir_menu_sync"
+              sequence="1"/>
+
+    <!-- SUBMENU : Menu Items -->
+    <menuitem id="menu_getir_menu_items"
+              name="Menü Ürünleri"
+              parent="menu_getir_menu_parent"
+              action="action_getir_menu_items"
+              sequence="2"/>
+
+    <!-- SUBMENU : Menu Options -->
+    <menuitem id="menu_getir_menu_options"
+              name="Menü Opsiyonları"
+              parent="menu_getir_menu_parent"
+              action="action_getir_menu_options"
+              sequence="3"/>
+
+    <!-- SUBMENU : Menu Categories -->
+    <menuitem id="menu_getir_menu_categories"
+              name="Menü Kategorileri"
+              parent="menu_getir_menu_parent"
+              action="action_getir_menu_categories"
+              sequence="4"/>
+
     <!-- SUBMENU : Product Mapping -->
     <menuitem id="menu_getir_product_map"
               name="Product Mapping"
-              parent="menu_getir_root"
+              parent="menu_getir_menu_parent"
               action="action_getir_product_map"
-              sequence="2"/>
+              sequence="5"/>
 
     <!-- SUBMENU : Logs -->
     <menuitem id="menu_getir_logs"
               name="Loglar"
-              parent="menu_getir_root" 
+              parent="menu_getir_root"
               action="action_getir_log_list"
-              sequence="3"/>
+              sequence="10"/>
 
+    <!-- SUBMENU : API Settings -->
+    <menuitem id="menu_getir_api_settings"
+              name="API Ayarları"
+              parent="menu_getir_root"
+              action="action_getir_api_list"
+              sequence="20"/>
 
-
-    <!-- GETIR ORDER LIST VIEW -->
-    <record id="view_getir_order_list_menu" model="ir.ui.view">
-        <field name="name">getir.order.list.menu</field>
-        <field name="model">getir.order</field>
-        <field name="arch" type="xml">
-            <list string="Getir Orders">
-                <field name="name"/>
-                <field name="getir_id"/>
-                <field name="status"/>
-                <field name="customer_name"/>
-                <field name="total_price"/>
-                <field name="total_discounted_price"/>
-                <field name="payment_method_text"/>
-                <field name="pos_order_id"/>
-                <field name="create_date"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- GETIR ORDER FORM VIEW -->
-    <record id="view_getir_order_form_menu" model="ir.ui.view">
-        <field name="name">getir.order.form.menu</field>
-        <field name="model">getir.order</field>
-        <field name="arch" type="xml">
-            <form string="Getir Order">
-                <sheet>
-                    <group string="Genel">
-                        <field name="name"/>
-                        <field name="getir_id"/>
-                        <field name="status"/>
-                        <field name="delivery_type"/>
-                        <field name="is_scheduled"/>
-                        <field name="scheduled_date"/>
-                    </group>
-
-                    <group string="Müşteri">
-                        <field name="customer_name"/>
-                        <field name="customer_phone"/>
-                        <field name="customer_note"/>
-                        <field name="address_text"/>
-                        <field name="address_city"/>
-                        <field name="address_lat"/>
-                        <field name="address_lng"/>
-                    </group>
-
-                    <group string="Fiyatlar">
-                        <field name="total_price"/>
-                        <field name="total_discounted_price"/>
-                        <field name="total_discount_amount"/>
-                        <field name="supplier_support_rate"/>
-                    </group>
-
-                    <group string="Ödeme">
-                        <field name="payment_method"/>
-                        <field name="payment_method_text"/>
-                    </group>
-
-                    <group string="POS">
-                        <field name="pos_order_id"/>
-                    </group>
-
-                    <group string="Raw JSON">
-                        <field name="raw_payload" widget="text"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-  
+    <!-- SUBMENU : Cancel Reasons -->
+    <menuitem id="menu_getir_cancel_reasons"
+              name="İptal Sebepleri"
+              parent="menu_getir_root"
+              action="action_getir_cancel_reason"
+              sequence="21"/>
 
 </odoo>
