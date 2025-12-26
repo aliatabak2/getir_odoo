@@ -10,6 +10,11 @@
                     <!-- Login -->
                     <button name="action_login" type="object" class="btn-primary" string="🔑 Token Al"/>
                     <separator/>
+                    <!-- Polling -->
+                    <button name="action_start_polling" type="object" class="btn-success" string="▶ Otomatik Sipariş Başlat" invisible="polling_active"/>
+                    <button name="action_stop_polling" type="object" class="btn-danger" string="⏹ Otomatik Sipariş Durdur" invisible="not polling_active"/>
+                    <!-- Fetch Orders -->
+                    <button name="action_fetch_orders" type="object" class="btn-info" string="📦 Manuel Çek"/>
                     <!-- Menu Sync -->
                     <button name="action_sync_menu" type="object" class="btn-info" string="📥 Menüyü Güncelle"/>
                     <separator/>
@@ -33,6 +38,7 @@
                         <group string="Token Bilgisi">
                             <field name="token" readonly="1"/>
                             <field name="token_expire" readonly="1"/>
+                            <field name="polling_active" readonly="1" widget="boolean_toggle"/>
                         </group>
                     </group>
                     

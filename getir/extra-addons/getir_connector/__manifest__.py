@@ -36,7 +36,9 @@
     ],
     "assets": {
         "point_of_sale.assets": [
+            "getir_connector/static/src/js/getir_cancel_popup.js",
             "getir_connector/static/src/js/pos_getir_order.js",
+            "getir_connector/static/src/xml/getir_cancel_popup.xml",
             "getir_connector/static/src/xml/pos_order_inherit.xml",
         ],
     },

@@ -1,0 +1,11 @@
+{
+    "id": "test-1003",
+    "orderId": "test-1003",
+    "cancelReason": {
+        "id": "cancel-reason-1",
+        "text": {
+            "tr": "Müşteri iptal etti"
+        }
+    },
+    "cancelledAt": "2025-12-15T09:46:00Z"
+}

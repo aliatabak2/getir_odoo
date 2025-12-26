@@ -1,16 +1,27 @@
 <odoo>
     <templates id="template" xml:space="preserve">
 
-        <!-- OrderList item’ına GETIR badge ekleme -->
+        <!-- OrderList item'ına GETIR badge ekleme -->
         <t t-inherit="point_of_sale.OrderList" t-inherit-mode="extension" owl="1">
-            <!-- order satırının içini bulup badge ekliyoruz -->
             <xpath expr=".//div[contains(@class, 'order-line')]" position="inside">
-                <!-- JavaScript'te order.ref veya order.pos_reference 'Getir-' ile başlıyorsa -->
-                <t t-if="order && ((order.ref and order.ref.indexOf('Getir-') === 0) or (order.pos_reference and order.pos_reference.indexOf('Getir-') === 0) or order.is_getir_order)">
+                <t t-if="order and ((order.ref and order.ref.indexOf('Getir-') === 0) or (order.pos_reference and order.pos_reference.indexOf('Getir-') === 0) or order.is_getir_order)">
                     <span class="badge bg-warning" title="Getir Siparişi" style="margin-left: 6px;">
                         Getir
                     </span>
                 </t>
+            </xpath>
+        </t>
+
+        <!-- ControlButtons - Actions menüsüne Getir İptal butonu ekle -->
+        <t t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension" owl="1">
+            <!-- control-buttons-modal div'inin içine en başa Getir iptal butonu ekle -->
+            <xpath expr="//div[hasclass('control-buttons-modal')]" position="inside">
+                <button t-if="isGetirOrder()" 
+                        class="btn btn-danger btn-lg py-5" 
+                        t-on-click="() => this.openGetirCancelPopup()">
+                    <i class="fa fa-times me-1" role="img" aria-label="Getir İptal" title="Getir Sipariş İptali"/>
+                    Getir Sipariş İptali
+                </button>
             </xpath>
         </t>
 

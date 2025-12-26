@@ -10,9 +10,16 @@ class GetirOrderCancelWizard(models.TransientModel):
     note = fields.Text(string="Açıklama")
     
     # Eksik ürün nedeniyle iptal için
-    is_product_missing = fields.Boolean(string="Ürün Eksikliği")
+    is_product_missing = fields.Boolean(string="Ürün Eksikliği", compute="_compute_is_product_missing", store=True)
     missing_product_id = fields.Char(string="Eksik Ürün ID (Getir)", 
         help="Eksik ürünün Getir'deki ID'si. Bu ürün otomatik olarak 'Tükendi' olarak işaretlenir.")
+
+    @api.depends('reason_id')
+    def _compute_is_product_missing(self):
+        """Ürün eksik sebebi seçildiğinde otomatik true yap"""
+        for wizard in self:
+            # Ürün eksik reason ID: 5c5b49a768f6a45d427f0a8e
+            wizard.is_product_missing = wizard.reason_id.getir_reason_id == '5c5b49a768f6a45d427f0a8e'
 
     def action_confirm(self):
         """İptali onayla"""

@@ -104,14 +104,33 @@ class GetirMenuSync(models.Model):
         Product = self.env["product.product"].sudo()
         
         # Menü yapısını parse et
-        # Getir API'den dönen yapı: {"categories": [...], "products": [...]} veya doğrudan liste
+        # Getir API'den dönen yapı: {"productCategories": [{...products: [...]}]}
         
         products = []
         categories = []
         
         if isinstance(menu_data, dict):
-            products = menu_data.get("products", []) or menu_data.get("items", []) or []
-            categories = menu_data.get("categories", []) or []
+            # Yeni yapı: productCategories içinde products var
+            product_categories = menu_data.get("productCategories", [])
+            if product_categories:
+                for cat_data in product_categories:
+                    # Kategori bilgilerini kaydet
+                    categories.append(cat_data)
+                    # Kategorideki ürünleri topla
+                    cat_products = cat_data.get("products", []) or []
+                    for prod in cat_products:
+                        # Ürüne kategori bilgisi ekle
+                        prod["category"] = {
+                            "id": cat_data.get("id", ""),
+                            "_id": cat_data.get("id", ""),
+                            "name": cat_data.get("name", {}),
+                            "chainCategoryId": cat_data.get("chainProductCategory", ""),
+                        }
+                        products.append(prod)
+            else:
+                # Eski yapı desteği
+                products = menu_data.get("products", []) or menu_data.get("items", []) or []
+                categories = menu_data.get("categories", []) or []
         elif isinstance(menu_data, list):
             products = menu_data
         

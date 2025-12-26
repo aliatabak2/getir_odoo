@@ -6,3 +6,5 @@ from . import getir_cancel_reason
 from . import getir_menu
 from . import getir_menu_sync
 from . import pos_order_inherit
+from . import getir_polling
+from . import rate_limiter

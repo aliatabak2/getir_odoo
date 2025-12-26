@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from odoo import models, fields, api
 from odoo.exceptions import UserError
 
+from .rate_limiter import get_rate_limiter
+
 _logger = logging.getLogger(__name__)
 
 
@@ -28,10 +30,32 @@ class GetirAPI(models.Model):
 
     active = fields.Boolean(default=True)
 
+    # Polling durumu
+    polling_active = fields.Boolean(string="Otomatik Sipariş Çekme", default=False)
+
+    def action_start_polling(self):
+        """15 saniyede bir sipariş çekmeyi başlat"""
+        from . import getir_polling
+        db_name = self.env.cr.dbname
+        getir_polling.start_getir_polling(db_name, interval=15)
+        self.write({"polling_active": True})
+        return self._notify("Getir Polling", "Otomatik sipariş çekme başlatıldı (15 sn)")
+
+    def action_stop_polling(self):
+        """Sipariş çekmeyi durdur"""
+        from . import getir_polling
+        getir_polling.stop_getir_polling()
+        self.write({"polling_active": False})
+        return self._notify("Getir Polling", "Otomatik sipariş çekme durduruldu")
+
     # -------------------------------------------
     # LOGIN
     # -------------------------------------------
     def action_login(self):
+        # Apply rate limiting for login endpoint
+        rate_limiter = get_rate_limiter()
+        rate_limiter.acquire("/auth/login")
+        
         url = f"{self.api_url}/auth/login"
         payload = {
             "appSecretKey": self.app_secret_key,
@@ -79,11 +103,15 @@ class GetirAPI(models.Model):
     # -------------------------------------------
     def call(self, method, endpoint, data=None, json_data=None, params=None, headers=None, files=None):
         self._ensure_token()
+        
+        # Apply rate limiting before making the request
+        rate_limiter = get_rate_limiter()
+        rate_limiter.acquire(endpoint)
 
         url = f"{self.api_url}{endpoint}"
 
         hdrs = {
-            "Authorization": f"Bearer {self.token}",
+            "token": self.token,
             "Content-Type": "application/json",
         }
         if headers:
@@ -117,6 +145,10 @@ class GetirAPI(models.Model):
     # -------------------------------------------
     def get_pos_status(self):
         """POS durumunu sorgula"""
+        # Apply rate limiting
+        rate_limiter = get_rate_limiter()
+        rate_limiter.acquire("/restaurants/pos-status")
+        
         payload = {
             "appSecretKey": self.app_secret_key,
             "restaurantSecretKey": self.restaurant_secret_key,
@@ -136,6 +168,10 @@ class GetirAPI(models.Model):
         POS durumunu ayarla.
         status: 100 = Aktif, 200 = Pasif
         """
+        # Apply rate limiting
+        rate_limiter = get_rate_limiter()
+        rate_limiter.acquire("/restaurants/pos-status")
+        
         payload = {
             "posStatus": status,
             "appSecretKey": self.app_secret_key,
@@ -206,15 +242,107 @@ class GetirAPI(models.Model):
 
     def get_active_orders(self):
         """Aktif siparişleri getir"""
-        return self.call("GET", "/food-orders/active")
+        return self.call("POST", "/food-orders/active")
 
     def get_unapproved_orders(self):
         """Onaylanmamış siparişleri getir"""
-        return self.call("GET", "/food-orders/unapproved")
+        return self.call("POST", "/food-orders/periodic/unapproved")
 
     def get_cancelled_orders(self):
         """İptal edilen siparişleri getir (24 saat içinde)"""
-        return self.call("GET", "/food-orders/cancelled")
+        return self.call("POST", "/food-orders/periodic/cancelled")
+
+    def action_fetch_orders(self):
+        """Getir'den aktif siparişleri çek ve Odoo'ya ekle"""
+        self.ensure_one()
+        
+        try:
+            # Aktif siparişleri çek
+            result = self.get_active_orders()
+            _logger.info("Getir active orders response: %s", result)
+            
+            orders = []
+            if isinstance(result, list):
+                orders = result
+            elif isinstance(result, dict):
+                orders = result.get("data", []) or result.get("orders", []) or []
+                # Eğer result tek bir obje ise listeye çevir
+                if not orders and result.get("id"):
+                    orders = [result]
+            
+            if not orders:
+                return self._notify("Getir Siparişleri", "Aktif sipariş bulunamadı.")
+            
+            created_count = 0
+            skipped_count = 0
+            
+            for order_data in orders:
+                gid = str(order_data.get("id") or order_data.get("_id") or "")
+                if not gid:
+                    continue
+                
+                # Zaten var mı kontrol et
+                existing = self.env["getir.order"].sudo().search([
+                    ("getir_id", "=", gid)
+                ], limit=1)
+                
+                if existing:
+                    skipped_count += 1
+                    continue
+                
+                try:
+                    self.env["getir.order"].sudo().create_from_payload(order_data)
+                    created_count += 1
+                except Exception as e:
+                    _logger.error("Sipariş oluşturma hatası (ID: %s): %s", gid, e)
+            
+            message = f"{created_count} yeni sipariş oluşturuldu"
+            if skipped_count:
+                message += f", {skipped_count} mevcut sipariş atlandı"
+            
+            return self._notify("Getir Siparişleri", message)
+            
+        except Exception as e:
+            _logger.exception("Getir sipariş çekme hatası: %s", e)
+            return self._notify("Getir Hata", f"Hata: {str(e)}")
+
+    @api.model
+    def _cron_fetch_orders(self):
+        """Cron job: Tüm aktif API'lerden siparişleri otomatik çek"""
+        apis = self.search([("active", "=", True)])
+        for api in apis:
+            try:
+                result = api.get_active_orders()
+                _logger.info("Getir cron - aktif siparişler: %s", result)
+                
+                orders = []
+                if isinstance(result, list):
+                    orders = result
+                elif isinstance(result, dict):
+                    orders = result.get("data", []) or result.get("orders", []) or []
+                    if not orders and result.get("id"):
+                        orders = [result]
+                
+                for order_data in orders:
+                    gid = str(order_data.get("id") or order_data.get("_id") or "")
+                    if not gid:
+                        continue
+                    
+                    existing = self.env["getir.order"].sudo().search([
+                        ("getir_id", "=", gid)
+                    ], limit=1)
+                    
+                    if existing:
+                        continue
+                    
+                    try:
+                        self.env["getir.order"].sudo().create_from_payload(order_data)
+                        _logger.info("Getir cron - yeni sipariş oluşturuldu: %s", gid)
+                    except Exception as e:
+                        _logger.error("Getir cron - sipariş hatası (ID: %s): %s", gid, e)
+                        
+            except Exception as e:
+                _logger.error("Getir cron - API hatası (%s): %s", api.name, e)
 
     # -------------------------------------------
     # RESTAURANT STATUS
@@ -360,6 +488,11 @@ class GetirAPI(models.Model):
     def upload_invoice(self, order_id: str, file_content, filename: str):
         """Fiş/fatura yükle"""
         self._ensure_token()
+        
+        # Apply rate limiting
+        rate_limiter = get_rate_limiter()
+        rate_limiter.acquire(f"/food-orders/{order_id}/invoice")
+        
         url = f"{self.api_url}/food-orders/{order_id}/invoice"
         headers = {"Authorization": f"Bearer {self.token}"}
         files = {"file": (filename, file_content)}

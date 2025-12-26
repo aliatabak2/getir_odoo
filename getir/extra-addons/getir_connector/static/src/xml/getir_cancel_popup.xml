@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="getir_connector.GetirCancelPopup" owl="1">
+        <div class="popup getir-cancel-popup">
+            <div class="modal-header drag-handle">
+                <h4 class="modal-title"><t t-esc="props.title"/></h4>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">İptal Sebebi Seçin:</label>
+                    <div class="cancel-reasons">
+                        <t t-foreach="cancelReasons" t-as="reason" t-key="reason.id">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" 
+                                       t-att-name="'cancel_reason'"
+                                       t-att-id="'reason_' + reason.id"
+                                       t-att-checked="state.selectedReasonId === reason.id"
+                                       t-on-change="() => this.selectReason(reason.id)"/>
+                                <label class="form-check-label" t-att-for="'reason_' + reason.id">
+                                    <t t-esc="reason.name"/>
+                                </label>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Not (Opsiyonel):</label>
+                    <textarea class="form-control" rows="3" 
+                              placeholder="Ek açıklama girebilirsiniz..."
+                              t-model="state.note"/>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-lg" t-on-click="cancel">
+                    <t t-esc="props.cancelText"/>
+                </button>
+                <button class="btn btn-danger btn-lg" t-on-click="confirm">
+                    <i class="fa fa-times me-1"/>
+                    <t t-esc="props.confirmText"/>
+                </button>
+            </div>
+        </div>
+    </t>
+
+</templates>

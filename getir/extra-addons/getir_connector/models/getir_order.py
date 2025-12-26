@@ -164,24 +164,79 @@ class GetirOrder(models.Model):
         
         lines = []
         for p in products:
+            # Getir product bilgilerini çıkar
+            getir_product_id = None
+            getir_chain_product_id = None
             prod_name = None
-            if isinstance(p.get("product"), dict):
-                prod_name = p["product"].get("name", {}).get("tr") or p["product"].get("name", {}).get("en")
-            else:
-                prod_name = p.get("product") or (p.get("name") or {}).get("tr")
+            
+            product_data = p.get("product")
+            if isinstance(product_data, dict):
+                getir_product_id = product_data.get("id") or product_data.get("_id")
+                getir_chain_product_id = product_data.get("chainProduct")
+                prod_name = product_data.get("name", {}).get("tr") or product_data.get("name", {}).get("en")
+            elif isinstance(product_data, str):
+                # product alanı sadece ID ise
+                getir_product_id = product_data
+            
+            # Alternatif alanlardan da dene
+            if not getir_product_id:
+                getir_product_id = p.get("id") or p.get("_id")
+            if not getir_chain_product_id:
+                getir_chain_product_id = p.get("chainProduct")
+            if not prod_name:
+                name_data = p.get("name")
+                if isinstance(name_data, dict):
+                    prod_name = name_data.get("tr") or name_data.get("en")
+                elif isinstance(name_data, str):
+                    prod_name = name_data
 
             qty = p.get("count", 1)
             price = p.get("priceWithOption") or p.get("price") or 0.0
 
-            product = env["product.product"].sudo().search(
-                [("name", "ilike", prod_name)],
-                limit=1,
-            )
+            # 1. Önce getir.product.map tablosundan eşleştirme ara
+            product = None
+            if getir_product_id:
+                mapping = env["getir.product.map"].sudo().search([
+                    ("getir_product_id", "=", getir_product_id)
+                ], limit=1)
+                if mapping:
+                    product = mapping.product_id
+                    _logger.info("Getir ürün eşleşti (product_id): %s -> %s", getir_product_id, product.name)
+            
+            # 2. Chain product ID ile de dene
+            if not product and getir_chain_product_id:
+                mapping = env["getir.product.map"].sudo().search([
+                    ("getir_chain_product_id", "=", getir_chain_product_id)
+                ], limit=1)
+                if mapping:
+                    product = mapping.product_id
+                    _logger.info("Getir ürün eşleşti (chain_id): %s -> %s", getir_chain_product_id, product.name)
+
+            # 3. Ürün adına göre ara
+            if not product and prod_name:
+                product = env["product.product"].sudo().search([
+                    ("name", "ilike", prod_name)
+                ], limit=1)
+                if product:
+                    _logger.info("Getir ürün eşleşti (isim): %s -> %s", prod_name, product.name)
+
+            # 4. Hiçbiri bulunamazsa yeni ürün oluştur (fallback)
             if not product:
+                display_name = prod_name or f"Getir Ürün ({getir_product_id[:8] if getir_product_id else 'bilinmiyor'})"
                 product = env["product.product"].sudo().create({
-                    "name": prod_name,
+                    "name": display_name,
                     "list_price": price,
                 })
+                _logger.warning("Getir ürün eşleşmedi, yeni oluşturuldu: %s", display_name)
+                
+                # Eşleştirme tablosuna ekle (gelecek siparişler için)
+                if getir_product_id:
+                    env["getir.product.map"].sudo().create({
+                        "name": display_name,
+                        "getir_product_id": getir_product_id,
+                        "getir_chain_product_id": getir_chain_product_id or "",
+                        "product_id": product.id,
+                    })
 
             # NOTE oluştur
             line_note_parts = []
@@ -255,33 +310,32 @@ class GetirOrder(models.Model):
     # PAYMENT METHOD FIND
     # -------------------------------------------------------------
     def _find_pos_payment_method(self, pos_order, payment_method_id: int):
-        env = self.env
-        company = pos_order.company_id
+        """POS session'ın izin verdiği ödeme yöntemlerinden uygun olanı seç"""
+        session = pos_order.session_id
+        allowed_methods = session.config_id.payment_method_ids
 
+        # Kart ödemesi (Online, Sodexo vb.)
         if payment_method_id in (3, 1, 26):
-            pm = env["pos.payment.method"].sudo().search([
-                ("name", "ilike", "kart"),
-                ("company_id", "=", company.id),
-            ], limit=1)
+            pm = allowed_methods.filtered(lambda m: 'kart' in (m.name or '').lower() or 'card' in (m.name or '').lower())
             if pm:
-                return pm
+                return pm[0]
 
+        # Nakit ödeme
         if payment_method_id == 4:
-            pm = env["pos.payment.method"].sudo().search([
-                ("is_cash_count", "=", True),
-                ("company_id", "=", company.id),
-            ], limit=1)
+            pm = allowed_methods.filtered(lambda m: m.is_cash_count)
             if pm:
-                return pm
+                return pm[0]
 
-        pm = env["pos.payment.method"].sudo().search([
-            ("is_cash_count", "=", True),
-            ("company_id", "=", company.id),
-        ], limit=1)
-        if not pm:
-            raise UserError("Getir ödemesi için uygun POS ödeme yöntemi bulunamadı.")
+        # Fallback: İlk izinli nakit yöntemi
+        pm = allowed_methods.filtered(lambda m: m.is_cash_count)
+        if pm:
+            return pm[0]
 
-        return pm
+        # Son çare: İlk izinli ödeme yöntemi (hangisi olursa)
+        if allowed_methods:
+            return allowed_methods[0]
+
+        raise UserError("Getir POS oturumunda hiç ödeme yöntemi tanımlı değil. POS ayarlarını kontrol edin.")
 
     # -------------------------------------------------------------
     # ORDER ACTIONS

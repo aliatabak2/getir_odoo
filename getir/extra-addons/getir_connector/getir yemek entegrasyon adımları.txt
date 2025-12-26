@@ -1,0 +1,542 @@
+
+
+
+
+
+
+
+
+ 
+Entegrasyon
+Adımları
+
+
+
+
+
+
+
+
+URL
+https://developers.getir.com/food/documentation/introduction
+Swagger: https://food-external-api-gateway.development.getirapi.com/documentation 
+Swagger dokümanı üzerinden aktif endpointleri inceleyip test edebilirsiniz.
+Restoran paneli: https://food-panel-frontend.fooddev.getirapi.com/
+	Restoran paneline erişebilmek için firmanıza tanımlanan kullanıcı bilgileri ile giriş yapabilirsiniz.
+Test Ortamı URL: https://food-external-api-gateway.development.getirapi.com
+Canlı Ortamı URL: https://food-external-api-gateway.getirapi.com/
+İletişim Adresi: getiryemekapi@getir.com
+
+Restoran - POS Statüs / Entegratör Çalışma Durumu Sorgulama ve Güncelleme
+
+Yeni bir restoran-POS eşleşmesi yapıldığında, entegrasyonun POS Durumu varsayılan olarak 200:Kapalı olarak ayarlanmaktadır. Bu nedenle, her yeni eşleşmenin ardından entegrasyonu aktif hale getirmek için tarafınızca pos durumunun aktif hale getirilmesi gerekmektedir. Bu kontrol ile bir restoran için entegrasyonun aktif hale gelerek sipariş akışının başlayabilmesi, tamamen sizin kontrolünüzde olacaktır.
+Eşleşme tamamlandıktan hemen sonra, aşağıda detayları verilen PUT metodu kullanılarak posStatus değeri 100: Aktif olarak güncellenmelidir. Bu işlem yapılmadığı sürece entegrasyon çalışmayacaktır. 
+Bu aktivasyon işlemi sizin kontrolünüzde olup her yeni eşleşme için sadece bir kez yapılmalıdır.
+
+Çalışmayı sonlandırdığınız ya da geçici bir süre için çalışmaya ara vermek istediğiniz restoranlar için pos statüs durumunu posStatus: 200 olarak güncelleyebilirsiniz. Bu işlem, ilgili restoran için entegrasyon akışını durduracaktır.
+
+Pos statüsü durumunu sorgulamak için: 
+
+●	Endpoint: /restaurants/pos-status
+●	Method: POST
+●	Payload: 
+
+{
+
+  "appSecretKey": "sizin_appSecretKey_degeriniz",
+  "restaurantSecretKey": "kontrol_edilecek_restoranin_secret_key_degeri"
+
+}
+
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+
+Pos statüsü durumunu güncellemek için: 
+
+
+Endpoint: /restaurants/pos-status
+Method: PUT
+Payload: 
+{
+  "posStatus": 200,
+  "appSecretKey": "sizin_appSecretKey_degeriniz",
+  "restaurantSecretKey": "kontrol_edilecek_restoranin_secret_key_degeri"
+
+}
+
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+posStatus alanı ‘100: Aktif’ ; ‘200: Pasif’ değerlerini almaktadır ve bu değerler firmanızın ilgili restoran paneli için  statüsünü ifade etmektedir. 
+Restoran Panel’de görüleceği üzere Restoran Pos Statüsü ile Entegratör Pos Statüsü değerlerinin her ikisinin de Aktif olması durumunda entegrasyon başarılı bir şekilde sağlanmaktadır. Eğer restoran (Restoran Durumu) ya da pos firması (Pos Durumu) tarafından bu statü ‘200: Pasif’ olarak değiştirilirse entegrasyon akışı sonlanmaktadır. 
+
+Not: Bu istek için header ile token iletmenize gerek bulunmamaktadır. Diğer istekleriniz için mevcut yetkilendirme süreci devam etmektedir.
+Token
+Login için firmanıza sağlanan secret keyler kullanılacaktır. Başarılı login sonrası firmanıza dönülen tokenı diğer endpointleri çağırırken kullanmanız gerekmektedir. Tokenın geçerlilik süresi 1 saattir. Bu süre sonunda token geçerliliğini yitireceğinden, yeni bir token almanız gerekmektedir.
+Ödeme yöntemleri
+Ödeme yöntemi ekleme, silme, aktive ve deaktive etmek için ilgili endpointler de bu bölümdedir. Ödeme yöntemlerinin genel listesi payment-methods bölümündeki endpointten alınabilir. Siparişlerde gördüğünüz paymentMethod: 1 Masterpass ödemesidir ve online ödemelerden biridir, ve payment-methods endpointlerinde göremezsiniz. Bunun sebebi bu ödeme tipiyle ilgili bir değişiklik yapamıyor olmanızdır, GetirYemek kullanıcıları istedikleri ürünü online ödeme ile sipariş oluşturabilir.
+Yeni ödeme yöntemi olarak paymentMethod alanında '26' değeri 'Online Ödeme' yöntemi olarak tarafınıza iletilecektir. Bu ödeme yöntemi standart 'Online Ödeme' olarak değerlendirmeniz gerekmektedir.
+İlgili alanlar;
+"paymentMethod": 26,
+"paymentMethodText": "en": "Online Payment", "tr": "Online Ödeme"
+
+Ödeme yöntemlerinin hepsi /payment-methods endpoint’inden sorgulanabilir.
+
+Tanım	Tip
+MasterPass	1
+BKM	2
+Kredi / Banka Kartı	3
+Nakit	4
+Multinet Kart	5
+Sodexo Kart	6
+Sodexo Çeki	7
+Ticket Kart	8
+Ticket Çeki	9
+Setcard Kart	10
+Metropol Kart	11
+Paye Kart	12
+MobileExpress	15
+Getir Finance	16
+Sodexo Pass Mobil Uygulama	17
+Sodexo Online	19
+Token Flex	21
+Ticket Online Ödeme	22
+Multinet Online Ödeme	24
+Online Ödeme	26
+Multinet QR Kod	27
+Ticket Restaurant QR Kod	28
+Setcard QR Kod	29
+Metropol QR Kod	30
+Paye QR Kod	31
+TokenFlex QR Kod	32
+
+Restoran, Menu, Ürünler
+/restaurants ve /restaurants/menu üzerinden restoran ve ürün bilgileriniz görülebilecektir. Restoran ve kurye açma kapama özellikleriyle ilgili endpointler restaurants bölümünde görülebilir. 
+Bir önceki adımda elde edilen ürün bilgileriyle products bölümündeki endpointler kullanılabilir. Bu bölümde zincir restoranlar için chain-idler üzerinden çalışan endpointler de görülebilir. Bu endpointler restoran bazlı olarak ürün IDsi tutmak istemeyen, menüsü her restoranda standart olan zincir restoranlar için eklenmiştir. Chain-idler sayesinde birden fazla şubesi olan zincir restoranlar, her şubesinde satılan standart ürünlerini tek bir id üzerinden yönetebilmektedir.
+Zincir restoran olarak çalışan restoranların, ürünlerin stoklarını ve diğer istatistiklerini tutmak için kullanmaları gereken değer chainProduct’tır. Bu id o restoranın tüm zincir şubelerinde aynı olduğu için stoklar sabit olan bu değerden yapılmalıdır. Aynı şekilde zincir restoranlarda category ve option sırasıyla chainProductCategory ve chainOption üzerinden takip edilmelidir. 
+Menüde tek başına satılmayan ama bir ID sahibi olması beklenen elemanlar opsiyon ürün olarak tanımlanmıştır. Opsiyon ürünlerin listesi restaurants/option-products endpointinden alınabilir. 
+Opsiyon ürünlerin kendi alt opsiyonları olabilir. Bu opsiyonların aktif veya inaktif olma durumları yine restaurants/option-products/... endpointlerinden yönetilebilir. 
+products/option-products/… endpointlerinden de opsiyon ürünlerin menüdeki aktif veya inaktif olma durumları kontrol edilebilir. Zincir restoranlar için chain-idler opsiyon ürünler için de sağlanmıştır.
+Restoran paneli üstünden yaptığınız çeşitli değişikliklerin tarafımızdan onaylanması gerekmektedir. Yaptığınız değişikliklerin hemen aktive olmaması durumunda onay bekleme durumuna geçmiş olması muhtemeldir.
+
+Ürün, Opsiyon ve Ürün Opsiyon Kapama, Status Sorgulama
+Ürün Kapatma
+
+GET - /products/{productId}/status
+GET - /products/chain-id/{chainProductId}/status
+ 
+endpointi ile Menüde bulunan ürünlerinizin statülerini sorgulayabilirsiz.  
+
+Tanım	Tip
+Açık	100
+Kapalı	200
+
+PUT - /products/{productId}/status endpointi ile bu ürünleri açık ya da kapalı olarak güncelleme işlemini gerçekleştirebilirsiniz.
+ 
+PUT - /products/chain-id/{chainProductId}/status 
+Opsiyon Kapatma
+●	Tekil Restoranlar;
+POST - /products/{productId}/inactivate-as-option
+POST - /products/{productId}/activate-as-option
+●	Zincir Restoranlar;
+POST - /products/chain-id/{chainProductId}/activate-as-option
+POST - /products/chain-id/{chainProductId}/activate-as-option
+metodları ile ürünlerin içerisinde kullandığınız Opsiyon Ürün’leri kapatabilirsiniz.
+
+ 
+Örnek olarak bir ürüne Cheese Burger ve Classic Burger tanımladığınızda, bu endpointler ile kapatırsanız sipariş aşamasında bu ürünler gözükmeyeceklerdir.
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+Opsiyon Ürün Kapatma
+ 
+Opsiyon Ürünler menüsünde bulunan ürünlerinizi aşağıda ki metodlar ile açık ve kapalı konuma alabilirsiniz. Bu endpoint Menülerin altında bulunan tüm ürünlerin içeriklerinde ki opsiyon ürünleri kapalı ya da açık olarak statülerini güncellemektedir.
+
+Tekil Restoranlar;
+
+POST -/products/option-products/{optionProductId}/inactivate-as-option
+POST -/products/option-products/{optionProductId}/activate-as-option
+
+Zincir Restoranlar;
+
+POST -/products/option-products/chain-id/{chainOptionProductId}/activate-as-option
+POST - products/option-products/chain-id/{chainOptionProductId}/inactivate-as-option
+
+ 
+ 
+Bir Ürüne Ait Opsiyon Kapatma
+
+Opsiyon Kapama ve Opsiyon Ürün Kapama metodları ile tüm ürünlerin altındaki tüm opsiyon ya da tüm opsiyon ürünleri kapatmanızı sağlamaktadır.
+
+
+Tekil Restoranlar;
+/products/{productId}/option-categories/{optionCategoryId}/options/{optionId}/status
+
+Zincir Restoranlar;
+/products/chain-id/{chainProductId}/option-categories/{chainOptionCategoryId}/options/{chainOptionId}/status 
+
+endpointi ile Bir ürünün altında bulunan belirli bir kategorideki opsiyonu tekil olarak kapatabilirsiniz. Bunun için Ürün id, category id ve opsiyon id belirtmeniz gerekmektedir.
+
+Tanım	Tip
+Açık	100
+Meşgul	200
+Kapanmış	300
+Silinmiş	400
+
+Test sipariş
+Test siparişlerinizi http://web-workspace.develop.getirapi.com/ üzerinden verebilirsiniz. Linke giriş yaptığınızda test ortamı için size verilen kullanıcı adı ve parola bilgisini kullanamazsınız. Getir gerçek ortamında bulunan üyelik adımlarını aynen takip ederek test ortamına da üye olmanız, üyeliğinize adres eklemeniz gerekmektedir.
+OTP Giriş Şifresi: 1234
+Sipariş esnasında masterpass ile giriş yapılırsa development ortamında ödeme alınmamaktadır.
+Siparişlerin doğru ilerleyebilmesi için Restoranların adresini değiştirmeyiniz. Restoranlar Arnavutköy Mah. içinde tanımlanırlar ki test kuryeleri hizmet verebilsin.
+Restoranları görüntüleyebilmeniz için kullanıcı adresinizi Arnavutköy Mah. yapmanız gerekmektedir. Aksi halde restoranlar kapalı gözükecektir.
+Test kartı
+https://creditcardgenerator.com/visa-credit-card-generator/ adresinden test için kullanılabilecek kart bilgileri alabilirsiniz. Test siparişlerini kolaylaştırmak için panelden restoranınız için kapıda ödemeyi aktive edip kapıda ödemeye uygun ödeme metotlarını ekleyebilirsiniz.
+
+Sipariş akışı
+Verilen siparişe dair bilgileri restoran paneli ve /food-orders/active endpointi üzerinden görebilirsiniz. Siparişin durumu verify, prepare, handover, deliver ve cancel endpointleri üzerinden yönetilir. Sipariş yönetimiyle ilgili detaylar aşağıdadır:
+Bu siparişlerin status alanı 325 veya 400 olabilir. 
+●	400 zamanı gelen veya yeni verilmiş siparişlerdir. 
+-	/verify ile sipariş onaylanır.
+●	325 ileri tarihli siparişlerdir.
+-	/verify-scheduled ile onaylanır.
+-	Onaylanan siparişin status alanı 350 olur ve artık /unapproved endpointi ile bu sipariş gelmez.
+-	Sipariş teslim zamanından 1 saat önce siparişin status alanı 500 olarak atanır ve sipariş hazırlanıyor olarak gözükür.
+Akış teslimat türüne göre devam eder.
+Teslimatı Restoran kuryesinin yapacağı siparişlerde (deliveryType: 2) akış aşağıdaki şekildedir:
+-	/prepare endpointine istek yapılarak siparişin statüsü hazırlanıyor olarak güncellenir.
+-	/deliver endpointine istek yapılarak siparişin statüsü teslim edildi olarak güncellenir.
+Teslimatı Getir kuryesinin yapacağı siparişlerde (deliveryType: 1) akış aşağıdaki şekildedir:
+-	/prepare endpointine istek yapılarak siparişin statüsü hazırlanıyor olarak güncellenir.
+-	/handover endpointine istek yapılarak siparişin statüsü getir kuryesine teslim edildi olarak güncellenir.
+-	Bundan sonraki adımları (/deliver gibi) Getir kuryesi tarafından devam ettirilir.
+verify, prepare, deliver endpointlerinin çağrılma süreleri arasında en az 1 dakika olmalıdır. Verify çağrıldıktan sonra prepare endpointine istek yapılabilmesi için en az 1 dakika geçmelidir. Aynı şekilde prepare ve deliver endpointleri arasında da bu kural geçerlidir.
+Siparişin Başka Şubeye Aktarılması
+Zincir restoranlar için eğer siparişin verildiği şube yoğunsa, çevredeki yakın başka bir şubeye siparişi aktarıp sürecin orada devam etmesi sağlanabilir. Sipariş kabul edildikten sonra, siparişin aktarabileceği restoranları almak için /food-orders/{foodOrderId}/available-restaurants-for-transfer endpoint’ine istek atılır. Buradan dönen restoranlardan biri için /food-orders/{foodOrderId}/transfer-to-another-restaurant endpoint’ine istek atılarak transfer işlemi gerçekleştirilir. 
+Sipariş transfer özelliği sadece zincir şubeleri için kullanılabilir. Bu özelliğin kullanım izni, GetirYemek’in kontrolündedir.
+
+
+Sipariş onaylama süre limiti
+Sipariş ilk geldiği zaman 30 saniye içinde bir cevap dönülmesi gerekmektedir. Siparişin kabulü veya iptali cevap olarak kabul edilir. Ancak 30 saniye içinde bu geri dönüş gerçekleştirilmediği takdirde restoran yetkilisi IVR call ile aranır. Eğer yetkiliye sipariş verildikten 5 dakika sonra hala ulaşılmamışsa onaylama süresi limitine aşılmış olur ve restoran kapalı değilse kapatılır.
+POS firması gelen siparişi henüz sisteme almadan panel üzerinden onaylanması durumunda, /food-orders/active endpointi ile aktif siparişleri kontrol edebilir. 
+İleri tarihli sipariş
+İleri tarihli siparişlerde sipariş sisteminize geldiğinde ön onay işlemi yapılmalıdır, 
+●	325 ileri tarihli siparişlerdir.
+-	/verify-scheduled ile onaylanır.
+-	Onaylanan siparişin status alanı 350 olur ve artık /unapproved endpointi ile bu sipariş gelmez.
+-	Sipariş teslim zamanından 1 saat önce siparişin status alanı 500 olarak atanır ve sipariş hazırlanıyor olarak gözükür.
+scheduledDate alanı, siparişin müşteriye ne zaman teslim edileceği bilgisini içerir. (isScheduled - ileri tarihli sipariş seçeneği, şu anda Getir kuryeleri tarafından yapılan teslimatlar için kapalıdır)
+Entegrasyon Süreci - Sipariş Yönetimi
+1.	Firmanıza bağlı restoranlara gelen siparişler anlık olarak ilettiğimiz entegrasyon türünü seçtiyseniz. Bunun için bize yeni sipariş ve sipariş iptal için 2 ayrı URL ve güvenli iletişim için Getir’e özel bir x-api-key iletmeniz gerekmektedir. İleteceğiniz URL’lere hem yeni siparişte hem de sipariş iptalde tüm sipariş bilgisi POST metoduyla gönderilecektir.
+
+2.	Siparişler ilk maddede belirtildiği üzere tarafınıza iletilecektir. Tarafınıza iletilen ve datayı işleyemediğiniz/karşılayamadığınız bir durumda ilgili siparişleri /unapproved endpointinden & iptal edilen siparişleri ise /cancelled endpointi üzerinden takip edebilirsiniz. İptal olan siparişler 24 saat içinde bu endpointten kaybolacaktır. /active endpointi üzerinden mevcut siparişlerinizi sorgulayabilirsiniz. 
+Entegrasyon kaydınız oluştururken default olarak entegrasyon türünüz 2 olarak belirlenmektedir. Eğer 1. Tip Entegrasyonu kullanmak isterseniz bizi bilgilendirmeniz gerekmektedir. Bu entegrasyon tipi için sizden sipariş ve iptalleri gönderebilmemiz için iki tane endpoint bilgisi almamız gerekmektedir.
+
+Fiş/Fatura Görselinin Yüklenmesi ve Sipariş ile ilişkilendirilmesi
+
+Siparişler ile ilişkili mali fiş/fatura görselinin yüklenmesi ile ilgili istek ileteceğiniz path ve ayrıntılar aşağıdaki gibidir:
+
+Fiş/Fatura Görselinin Yüklenmesi: 
+●	Endpoint: /food-orders/{orderId}/invoice
+●	Method: POST
+●	File: formData
+●	Response: {"result": true}
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+Fiş/Fatura Görselinin Kontrolü ya da Sorgulanması:
+
+●	Endpoint: /food-orders/{orderId}/invoice
+●	Method: GET
+●	Response: {"url": "url", "invoiceStatus": 200}
+●	Status: created:100, approved:200, not_approved:300
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+Fiş/Fatura Görselinin Silinmesi: 
+
+●	Endpoint: /food-orders/{orderId}/invoice
+●	Method: DELETE
+●	Response: {"result": true}
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+Sipariş iptali
+Sipariş İptal Sebepleri
+
+id	Geçerli Olan Getir Getirsin Statüleri	Geçerli Olan Restoran Getirsin Statüleri	Mesaj
+5f05b1392765e85c5d0432d2		325,350,400	Restoranda kurye yok, musait değil
+5f05b13f2765e85c5d0432d3	400,500,550	325,350,400,500	Restoran teknik problem (internet, elektrik kesintisi, usta yok vb, sistemsel hatalar) yaşıyor
+5e1469f7916c7a55cfc2aede		325,350,400,500,700	Müşteri adresi restoran servis alanı dışında 
+5c5b49b068f6a45d427f0a8f	400, 500	325,350,400,500	Restoran yoğun
+5f0875342ce13c10cbf1c0e6		325,350,400,500	Hava muhalefeti
+5c5b495768f6a45d427f0a8d	400, 500	325,350,400,500	Restoran kapalı
+5c5b49a768f6a45d427f0a8e	400,500	325,350,400,500	Restoranda ürün eksik
+5f0875342ce13c10cbf1c0e7		700,800	Kurye müşteri adresini bulamadı
+6088226bdaa34255a5693e23		325,350,400,500, 700	Sipariş minimum sepet tutarı altında
+ Eksik Ürün ile Sipariş İptali
+
+İptal işlemi, siparişin iptal edilmek istendiği andaki statüsüne göre farklı seçenekler ile iptal edilir. Eğer iptal etmek istediğiniz sipariş ‘Eksik Ürün’ sebebi ile iptal ediliyorsa ürüne ait id bilgisi ile iptal isteğinin yollanması durumunda ilgili ürün menüde günlük olarak kapatılacaktır.
+
+Yeni sipariş datası içerisinde yer alan “products” objesinin içerisindeki “product” alanındaki id ile iptal isteğini iletmeniz gerekmektedir. 
+
+●	Endpoint: /food-orders/{orderId}/cancel
+●	Method: POST
+●	Payload:
+{
+  "cancelNote": "string",
+  "cancelReasonId": "string",
+  "productId": "string"
+}
+
+İsteğin başarılı bir şekilde iletilmesi sonucunda ilgili ürün menüde “Tükendi” ifadesi ile görüntülenecek ve sepete eklenemeyecektir.
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+Kurye Statüleri
+Status	Açıklama
+100	Müsait
+200	Meşgul
+400	Doğruluyor
+450	Restorana Ulaştı
+500	Sipariş hazırlanıyor
+700	Yolda
+800	Müşteriye Ulaştı
+900	Dönüyor
+1000	İptal
+ Sipariş Statüleri
+325	İleri tarihli sipariş, ön onay bekliyor
+350	İleri tarihli sipariş, ön onay alındı
+400	Restoran onayı bekleniyor
+500	Sipariş hazırlanıyor
+550	*Sipariş hazırlandı
+600	*Sipariş kuryeye teslim edildi
+700	Kurye yola çıktı
+800	*Kurye adrese ulaştı
+900	Sipariş teslim edildi
+1500	Sipariş admin tarafından iptal edildi
+1600	*Sipariş restoran tarafından iptal edildi
+
+* simgeli status bilgileri Getir Getirsin siparişleri için geçerlidir.
+
+Restoran Hizmet Bölgesi (Zone) Güncelleme
+
+Minimum Sepet Tutarı (minBasketSize) ve Tahmini Teslim Zamanı (ETA) bilgisini Bölge (Zone) üzerinde tanımlayabilir ve güncelleyebilirsiniz. Güncelleme işlemi için aşağıda yer alan adımları izleyebilirsiniz:
+
+●	/restaurants/zones endpointi için GET methodu ile mevcut zone tanımlarına erişebilirsiniz. "_id": "string" alanı zoneId değerinizdir. “name” alanı ise restoran panelde görülen bölge ismidir.
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+●	/restaurants/zones/eta endpointi için GET methodu ile tüm ETA değerlerine ait Id bilgisini erişebilirsiniz. Kullanmak istediğiniz değer için "_id" alanındaki değeri zone üzerindeki ETA değerini güncellemek için kullanmanız gerekecektir.
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+●	Aşağıda ayrıntıları yer alan endpoint ile ETA ve minBasketSize değerlerini oluşturabilir ve güncelleyebilirsiniz.
+○	Endpoint: /restaurants/{restaurantId}/zones/{zoneId}
+○	Method: PUT
+○	Payload: 
+	{
+  "eta": "6560d0c2234b8411ed8da575",
+  "minBasketSize": 23
+}
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız. 
+
+●	Zone durumu güncellemek için ise PUT methodunu kullanabilirsiniz. 
+○	Aktif: /restaurants/zones/{zoneId}/active (Swagger)
+○	Pasif: /restaurants/zones/{zoneId}/inactive (Swagger)
+
+Restoran ‘Yoğuna Al’ Aksiyonu
+
+Restoranların mutfak ya da kurye kaynaklı yoğunluk yaşaması durumunda kullanıcılara daha doğru teslimat süresi göstermesi ve kullanıcı şikayetinin önlenmesi adına kullanıcılara gösterilen teslimat süreleri +15, +30 ve +45 dk artırabilir. Kullanım senaryolarına dair ayrıntılar aşağıdaki gibidir: 
+
+●	Endpoint: /restaurants/delivery-duration/busyness
+●	Method: PUT
+●	Payload:
+	{
+   	 "isBusy": true, 
+  	 "busynessDifferenceDuration": 45
+}
+
+busynessDifferenceDuration alanını 15, 30 ve 45 dakika olmak üzere üç farklı şekilde yollayabilirsiniz. Eğer yoğuna aldığınız bir restoranın durumunu eski haline getirmek istiyorsanız isBusy alanının false olarak yollamanız yeterlidir. Örnek payload: 
+
+●	Payload:
+	{
+   	 "isBusy": false
+}
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+
+Restoran Hizmet Durumunu Belirli Bir Süre için Değiştirme
+
+Kısa bir süre için restoran hizmet durumunu değiştirmek isterseniz tercih edeceğiniz zaman aralığı için kapama ilgili isteği iletebilirsiniz.
+
+Kısa süreli kapama seçenekleri: 15, 30, 45 (Dakika)
+
+●	Endpoint: /restaurants/status/close
+●	Method: PUT
+●	Payload:
+	{
+   	 "timeOffAmount": 15
+}
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+Kurye Hizmet Durumu Belirli Bir Süre için Değiştirme
+
+Kısa bir süre için restoran kuryesi hizmet durumunu değiştirmek isterseniz tercih edeceğiniz zaman aralığı için ilgili isteği iletebilirsiniz. 
+
+Kısa süreli kapama seçenekleri: 15, 30, 45 (Dakika)
+
+●	Endpoint: /restaurants/courier/disable
+●	Method: POST
+●	Payload:
+	{
+   	 "timeOffAmount": 15
+}
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+
+Sipariş Değerlendirmelerinin Alınması
+
+Restoran özelinde siparişler ile ilgili değerlendirmeleri ve yorumları almak için aşağıda bilgileri yer alan path üzerinden istekte bulunabilirsiniz.
+
+●	Endpoint: /restaurants/reviews
+●	Method: GET
+●	Parameters: startDate*, endDate*, page, pageSize
+
+İlgili istek için swagger’a ulaşmak denemek için tıklayınız.
+Rate limiter
+Entegrasyonda endpointlerimize (/periodic endpointleri hariç) kısa periyotlarla düzenli request yapılmasını engellemek için rate limiter kullanılmaktadır.
+
+Örnek: Eğer 60 saniye içinde 300+ request gelirse, istekleriniz 20 saniye boyunca engellenir.
+
+	PATH	LIMIT	VALUE
+POST	/auth/login	TRUE	10 req, 60s, 30s
+GET	/food-orders/report	TRUE	3 req, 60s, 20s
+GET	/food-orders/report/details	TRUE	3 req, 60s, 20s
+POST	/food-orders/report/details	TRUE	3 req, 60s, 20s
+GET	/food-orders/{foodOrderId}/cancel-options 	TRUE	40 req, 600s, 60s
+POST	/food-orders/active
+TRUE	20 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/verify-scheduled	TRUE	2 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/deliver
+TRUE	2 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/prepare	TRUE	2 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/transfer-to-another-restaurant	TRUE	2 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/handover	TRUE	2 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/cancel
+TRUE	2 req, 60s, 30s
+POST	/food-orders/{foodOrderId}/verify	TRUE	2 req, 60s, 30s
+GET	/payment-methods	TRUE	2 req, 60s, 30s
+GET	/products/{productId}/status
+TRUE	3 req, 60s, 30s
+PUT	/products/{productId}/status
+TRUE	3 req, 60s, 30s
+GET	/products/chain-id/{chainProductId}/status
+TRUE	3 req, 60s, 30s
+PUT	/products/chain-id/{chainProductId}/status
+TRUE	3 req, 60s, 30s
+POST	/products/{productId}/inactivate-as-option
+TRUE	3 req, 60s, 30s
+POST	/products/{productId}/activate-as-option
+TRUE	3 req, 60s, 30s
+POST	/products/chain-id/{chainProductId}/activate-as-option	TRUE	3 req, 60s, 30s
+POST	/products/chain-id/{chainProductId}/inactivate-as-option	TRUE	3 req, 60s, 30s
+POST	/products/option-products/{optionProductId}/activate-as-option	TRUE	3 req, 60s, 30s
+POST	/products/option-products/{optionProductId}/inactivate-as-option	TRUE	3 req, 60s, 30s
+POST	/products/option-products/chain-id/{chainOptionProductId}/activate-as-option
+TRUE	3 req, 60s, 30s
+POST	/products/option-products/chain-id/{chainOptionProductId}/inactivate-as-option	TRUE	3 req, 60s, 30s
+PUT	/products/{productId}/option-categories/{optionCategoryId}/options/{optionId}/status	TRUE	3 req, 60s, 30s
+PUT	/products/chain-id/{chainProductId}/option-categories/{chainOptionCategoryId}/options/{chainOptionId}/status
+TRUE	3 req, 60s, 30s
+GET	/restaurants
+TRUE	2 req, 60s, 30s
+GET	/restaurants/menu
+TRUE	2 req, 60s, 30s
+GET	/restaurants/option-products
+TRUE	2 req, 60s, 30s
+GET	/restaurants/payment-methods
+TRUE	2 req, 60s, 30s
+POST	/restaurants/payment-methods
+TRUE	2 req, 60s, 30s
+DELETE	/restaurants/payment-methods
+TRUE	2 req, 60s, 30s
+GET	/restaurants/zones
+TRUE	2 req, 60s, 30s
+GET	/restaurants/zones/{zoneId}
+TRUE	2 req, 60s, 30s
+POST	/restaurants/courier/disable
+TRUE	2 req, 60s, 30s
+POST	/restaurants/courier/enable
+TRUE	2 req, 60s, 30s
+POST	/restaurants/payment-methods/active
+TRUE	2 req, 60s, 30s
+POST	/restaurants/payment-methods/inactive
+TRUE	2 req, 60s, 30s
+
+PUT	/restaurants/average-preparation-time
+TRUE	2 req, 60s, 30s
+PUT	/restaurants/delivery-duration
+TRUE	2 req, 60s, 30s
+DELETE	/restaurants/delivery-duration
+TRUE	2 req, 60s, 30s
+PUT	/restaurants/status/close
+TRUE	2 req, 60s, 30s
+PUT	/restaurants/status/open
+TRUE	2 req, 60s, 30s
+PUT	/restaurants/zones/{zoneId}/inactive
+TRUE	2 req, 60s, 30s
+PUT	/restaurants/zones/{zoneId}/active
+TRUE	2 req, 60s, 30s
+PUT	/restaurants/option-products/{optionProductId}/option-categories/{optionCategoryId}/options/{optionId}/status	TRUE	2 req, 60s, 30s
+PUT	/restaurants/option-products/chain-id/{chainOptionProductId}/option-categories/{chainOptionCategoryId}/options/{chainOptionId}/status
+TRUE	2 req, 60s, 30s
+
+Sistem Saati
+Sistemden dönen tarih ve saatlerin hepsi Greenwich Mean Time(GMT)’dır. Dolayısıyla sipariş tarihi ve onay tarihi arasında saat farkı gözlemlenebilir.
+Ortak kampanyalarda sipariş tutarı hesaplaması
+Sipariş üstünde bulunan totalPrice, sepetteki ürünlerin toplam fiyatıdır. totalDiscountedPrice, totalPrice alanından müşteriye yapılan indirimin restoran tarafından karşılanan kısmının çıkarılmasıyla bulunur. Örnek olarak 30 liralık bir sepette 5 liralık bir indirim olduğunu ve bu indirimin %40'ının restoran %60'ının Getir tarafından karşılandığını düşünürsek totalPrice: 30, totalDiscountedPrice: 28 olarak gözükecektir. Kapıda ödeme alınan siparişlerde Getir’in karşıladığı bir indirim olmadığından promosyon kullanılan siparişlerde müşteriden tahsil edilecek tutar totalDiscountedPrice alanı olacaktır.
+supplierSupportRate alanı Getir ve Restoran’ın ortak düzenlediği kampanyalarda indirimin yüzde kaçının Restoran tarafından karşılacağını belirtir. Örneğin totalPrice 50 TL, totalDiscountAmount 10 TL ve supplierSupportRate 80 olduğu durumda; 10 TL indirimin, 8 TL si restoran tarafından karşılanır. Restoran 42 TL ödeme alır.
+Ortak kampanyalarda Getir’in payına düşen indirim tutarı restoranlarla paylaşılmamaktadır. Dolayısıyla restorana totalPrice ve totalDiscountedPrice fieldlarıyla restoran bilgilendirilir.
+
+Seçilen kampanya eğer komple Getir tarafından karşılanıyorsa restoran’a totalDiscountedPrice alanı dönülmez sadece totalPrice alanı dönülür. Test ortamındaki birçok kampanya bu gruba dahildir.
+Sipariş bilgisi alanları
+Sipariş bilgilerinde herhangi bir alan null gelemez gibi bir kuralımız yok, entegre olan firmalardan kendileri için mutlaka gerekli alanlar üstünde kontrol yapıp diğer alanlarla ilgili herhangi bir kontrol koymamasını bekliyoruz, aksi durumda siparişi çok da etkilemeyen bazı alanların olmaması ya da formatının farklı olması gibi sebeplerden kaynaklı sipariş iptalleri yaşanabiliyor.
+Servis Hata Mesajları
+ 
+ 
+ 
+
+TLS Versiyonu
+TLSv1.2_2019
+Canlı ortama çıkmadan yapılması gereken testler
+-	Sipariş iptalinin kontrolü
+-	Restoran Getirsin Siparişi kontrolü
+-	Getir Getirsin Siparişi kontrolü
+-	Kampanyalı siparişler (Restoran destekli ve/veya Getir destekli) kontrolü
+-	İleri tarihli sipariş kontrolü
+
+Restoran Paneli - https://food-panel-frontend.fooddev.getirapi.com/
+Restoranın yönetiminin sağlandığı bu paneli; menüye ürün eklemek-çıkarmak, ürünlere opsiyon eklemek, kurye saatlerini ve teslimat bölgelerini düzenlemek gibi birçok amaç için kullanabilirsiniz.
+Panelin kullanımını anlatan kısa ve öğretici videoları ilgili sayfaların sağ tarafında Sayfa Kullanımı isimli butona tıklayarak izleyebilirsiniz.
+ 
+
+Restoran Panelinde Menü Oluşturma
+Paneldeki Menü sekmesinden ürünler, opsiyonlar ve paket menüler oluşturulabilir. Bu sayfanın kullanımını genel seviyede öğrenmek için öncelikle Sayfa Kullanımı butonuna tıklayarak eğitim videosunu izleyiniz.
+Paket Menü Oluşturma
+Örnek olarak bir etli yemek, çorba ve tatlıyı kapsayan Etli Yemek Menüyü oluşturmanın adımları :  
+1.	Paket Menü oluşturmak için öncelikle Yeni Ürün Ekle butonuna basınız. Ürünün ismini Etli Yemek Menü koyup, açıklamasına bir etli yemek + çorba + tatlı yazınız. Sonrasında ürünün default fiyatını belirleyiniz.
+2.	Opsiyon Ekle butonuna basarak opsiyonları girebilirsiniz. İlk opsiyon olarak Etli Yemekler ve daha sonrasında altına bu etli yemeklerin neler olduğunu Alt Opsiyonlar olarak giriniz. Alt Opsiyon’u 2 farklı şekilde oluşturabilirsiniz. Alt Opsiyon eğer daha önceden eklediğiniz bir ürün ise ürün seçeneği seçilerek listeden eklenebilir. Eğer Alt Opsiyon kendi başına satılamayan ancak opsiyon olarak satılan bir ürün ise Metin seçeneğini seçerek opsiyonu ekleyebilirsiniz. Extra malzeme içeren ve daha maliyetli ürünlere ek fiyat eklemek için Alt Opsiyon’un fiyat kısmına o ürün seçildiğinde menünün default fiyatına eklenecek extra ücreti girebilirsiniz. 
+3.	Etli Yemekler opsiyonunu oluşturduktan sonra Çorba ve Tatlı opsiyonlarını da aynı şekilde sisteme girerek menünüzü tamamlayabilirsiniz.

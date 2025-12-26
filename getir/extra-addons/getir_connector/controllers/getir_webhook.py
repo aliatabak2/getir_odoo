@@ -14,7 +14,7 @@ class GetirWebhook(http.Controller):
 
     # ----------------------------------------------------------------------
     # 🟣 SIGNATURE DOĞRULAMA (HMAC-SHA256)
-    # ----------------------------------------------------------------------
+   # ----------------------------------------------------------------------
     def _verify_signature(self, raw_body):
         """
         Getir webhook signature doğrulaması.
@@ -57,9 +57,14 @@ class GetirWebhook(http.Controller):
     # ----------------------------------------------------------------------
     # Basit test endpoint
     # ----------------------------------------------------------------------
-    @http.route('/getir/test_order', type='http', auth='public', methods=['POST'], csrf=False)
-    def xxx_test(self, **kw):
-        return "OK"
+    @http.route('/getir/test_order', type='http', auth='public', csrf=False)
+    def xxx_test(self):
+        return http.Response(
+            json.dumps({"success": True, "message": "Test başarılı!"}),
+            status=200,
+            content_type="application/json"
+        )
+
 
     # ----------------------------------------------------------------------
     # 🟣 NEW ORDER

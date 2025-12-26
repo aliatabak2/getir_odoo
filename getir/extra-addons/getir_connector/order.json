@@ -1,0 +1,33 @@
+{
+    "id": "test-1003",
+    "status": 100,
+    "deliveryType": 1,
+    "totalPrice": 150,
+    "totalDiscountedPrice": 140,
+    "paymentMethod": 3,
+    "paymentMethodText": {
+        "tr": "Kredi Kartı"
+    },
+    "client": {
+        "name": "Test Müşteri",
+        "contactPhoneNumber": "05551234567",
+        "deliveryAddress": {
+            "address": "Kadıköy / İstanbul",
+            "city": "İstanbul",
+            "lat": 40.99,
+            "lng": 29.03
+        }
+    },
+    "products": [
+        {
+            "product": {
+                "name": {
+                    "tr": "Ayran"
+                }
+            },
+            "count": 2,
+            "price": 20
+        }
+    ],
+    "note": "Zil çalın"
+}

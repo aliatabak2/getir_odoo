@@ -38,23 +38,41 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- CANCEL WIZARD VIEW -->
+    <!-- CANCEL WIZARD VIEW - Getir Panel Tarzı -->
     <record id="view_getir_order_cancel_wizard_form" model="ir.ui.view">
         <field name="name">getir.order.cancel.wizard.form</field>
         <field name="model">getir.order.cancel.wizard</field>
         <field name="arch" type="xml">
             <form string="Sipariş İptali">
-                <group>
-                    <field name="order_id" readonly="1"/>
-                    <field name="reason_id" options="{'no_create': True}"/>
-                    <field name="note"/>
-                </group>
-                <group string="Eksik Ürün (Opsiyonel)">
-                    <field name="is_product_missing"/>
-                    <field name="missing_product_id" invisible="not is_product_missing"/>
-                </group>
+                <sheet>
+                    <div class="oe_title">
+                        <h2>
+                            <field name="order_id" readonly="1" nolabel="1"/>
+                        </h2>
+                    </div>
+                    <group>
+                        <group string="İptal Sebebi Seçin" col="1">
+                            <field name="reason_id" 
+                                   widget="radio" 
+                                   options="{'horizontal': False}"
+                                   domain="[('getir_reason_id', 'in', ['5c5b49a768f6a45d427f0a8e', '5f05b13f2765e85c5d0432d3'])]"
+                                   required="1"
+                                   nolabel="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="note" placeholder="İptal açıklaması ekleyin (opsiyonel)..." widget="text"/>
+                    </group>
+                    <group string="Eksik Ürün Bilgisi" invisible="reason_id.getir_reason_id != '5c5b49a768f6a45d427f0a8e'">
+                        <field name="is_product_missing" invisible="1"/>
+                        <field name="missing_product_id" 
+                               string="Eksik Ürün ID" 
+                               placeholder="Getir ürün ID'si (opsiyonel)"
+                               help="Bu ürün otomatik olarak 'Tükendi' olarak işaretlenecek"/>
+                    </group>
+                </sheet>
                 <footer>
-                    <button name="action_confirm" type="object" string="İptal Et" class="btn-danger"/>
+                    <button name="action_confirm" type="object" string="Siparişi İptal Et" class="btn-danger"/>
                     <button string="Vazgeç" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
@@ -62,31 +80,47 @@
     </record>
 
     <!-- DEFAULT CANCEL REASONS DATA -->
+    <!-- Gerçek Getir API iptal sebep ID'leri (MongoDB ObjectID) -->
     <data noupdate="1">
         <record id="cancel_reason_out_of_stock" model="getir.cancel.reason">
-            <field name="name">Ürün Tükendi</field>
-            <field name="getir_reason_id">out_of_stock</field>
+            <field name="name">Restoranda ürün eksik</field>
+            <field name="getir_reason_id">5c5b49a768f6a45d427f0a8e</field>
             <field name="sequence">1</field>
         </record>
         <record id="cancel_reason_kitchen_busy" model="getir.cancel.reason">
-            <field name="name">Mutfak Yoğun</field>
-            <field name="getir_reason_id">kitchen_busy</field>
+            <field name="name">Restoran yoğun</field>
+            <field name="getir_reason_id">5c5b49b068f6a45d427f0a8f</field>
             <field name="sequence">2</field>
         </record>
         <record id="cancel_reason_closing" model="getir.cancel.reason">
-            <field name="name">Restoran Kapanıyor</field>
-            <field name="getir_reason_id">closing</field>
+            <field name="name">Restoran kapalı</field>
+            <field name="getir_reason_id">5c5b495768f6a45d427f0a8d</field>
             <field name="sequence">3</field>
         </record>
         <record id="cancel_reason_technical" model="getir.cancel.reason">
-            <field name="name">Teknik Sorun</field>
-            <field name="getir_reason_id">technical_issue</field>
+            <field name="name">Restoran teknik problem (internet, elektrik kesintisi vb.)</field>
+            <field name="getir_reason_id">5f05b13f2765e85c5d0432d3</field>
             <field name="sequence">4</field>
         </record>
-        <record id="cancel_reason_other" model="getir.cancel.reason">
-            <field name="name">Diğer</field>
-            <field name="getir_reason_id">other</field>
-            <field name="sequence">99</field>
+        <record id="cancel_reason_address_outside" model="getir.cancel.reason">
+            <field name="name">Müşteri adresi restoran servis alanı dışında</field>
+            <field name="getir_reason_id">5e1469f7916c7a55cfc2aede</field>
+            <field name="sequence">5</field>
+        </record>
+        <record id="cancel_reason_no_courier" model="getir.cancel.reason">
+            <field name="name">Restoranda kurye yok, müsait değil</field>
+            <field name="getir_reason_id">5f05b1392765e85c5d0432d2</field>
+            <field name="sequence">6</field>
+        </record>
+        <record id="cancel_reason_weather" model="getir.cancel.reason">
+            <field name="name">Hava muhalefeti</field>
+            <field name="getir_reason_id">5f0875342ce13c10cbf1c0e6</field>
+            <field name="sequence">7</field>
+        </record>
+        <record id="cancel_reason_min_basket" model="getir.cancel.reason">
+            <field name="name">Sipariş minimum sepet tutarı altında</field>
+            <field name="getir_reason_id">6088226bdaa34255a5693e23</field>
+            <field name="sequence">8</field>
         </record>
     </data>
 </odoo>
